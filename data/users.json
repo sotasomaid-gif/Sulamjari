@@ -1,0 +1,46 @@
+[
+  {
+    "id": "user-admin-pusat-utama",
+    "nama": "Admin Pusat (Owner)",
+    "username": "0895321898759",
+    "noHp": "0895321898759",
+    "password": "@123Juara",
+    "role": "admin_pusat",
+    "statusPersetujuan": "DISETUJUI",
+    "isVerified": true,
+    "createdAt": "2026-01-01"
+  },
+  {
+    "id": "user-pending-andi-1",
+    "nama": "Andi Saputra (Mandor Produksi)",
+    "username": "081298765432",
+    "noHp": "081298765432",
+    "password": "password123",
+    "role": "kepala_pabrik",
+    "statusPersetujuan": "MENUNGGU_PERSETUJUAN",
+    "isVerified": false,
+    "createdAt": "2026-03-01"
+  },
+  {
+    "id": "user-admin-pabrik-1",
+    "nama": "Siti Rahma (Kasir & Staf)",
+    "username": "081233445566",
+    "noHp": "081233445566",
+    "password": "password123",
+    "role": "admin_pabrik",
+    "statusPersetujuan": "DISETUJUI",
+    "isVerified": true,
+    "createdAt": "2026-01-05"
+  },
+  {
+    "id": "user-kepala-pabrik-1",
+    "nama": "Pak Bambang (Mandor Giling)",
+    "username": "081344556677",
+    "noHp": "081344556677",
+    "password": "password123",
+    "role": "kepala_pabrik",
+    "statusPersetujuan": "DISETUJUI",
+    "isVerified": true,
+    "createdAt": "2026-01-10"
+  }
+]

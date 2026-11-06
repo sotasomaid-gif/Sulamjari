@@ -1,0 +1,6 @@
+{
+  "name": "Pabrik Mie Sulamjari - Manajemen Operasional & Keuangan",
+  "description": "Sistem manajemen stok bahan baku, pemakaian harian produksi, penjualan mie pelanggan, biaya operasional, dan laporan laba rugi Pabrik Mie Sulamjari.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
