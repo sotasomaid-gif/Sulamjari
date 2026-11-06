@@ -32,6 +32,7 @@ import {
   OtpSimulationMessage,
   DEFAULT_USERS,
   getWhatsAppWebUrl,
+  toInternationalPhone,
   fetchUsersFromServer,
   registerUserOnServer,
 } from '../utils/auth';
@@ -199,8 +200,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     const cleanPhone = normalizePhoneNumber(regPhone);
-    if (!cleanPhone || cleanPhone.length < 9) {
-      setRegError('Nomor HP aktif (WhatsApp) tidak valid. Contoh: 08123456789.');
+    if (!cleanPhone || cleanPhone.length < 8) {
+      setRegError('Nomor HP aktif (WhatsApp) tidak valid. Contoh: 08123456789 (minimal 8-13 digit).');
       return;
     }
 
@@ -537,7 +538,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <input
                       type="text"
                       value={regNama}
-                      onChange={(e) => setRegNama(e.target.value)}
+                      onChange={(e) => {
+                        setRegNama(e.target.value);
+                        if (regError) setRegError(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') e.preventDefault();
+                      }}
                       placeholder="Contoh: Budi Santoso / Pak Joko"
                       className="w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
                       autoFocus
@@ -557,15 +564,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <input
                       type="tel"
                       value={regPhone}
-                      onChange={(e) => setRegPhone(e.target.value)}
-                      placeholder="08xxxxxxxxxx (Wajib nomor WA aktif)"
-                      className="w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
+                      onChange={(e) => {
+                        setRegPhone(e.target.value);
+                        if (regError) setRegError(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') e.preventDefault();
+                      }}
+                      placeholder="08xxxxxxxxxx / 628xxxxxxxxxx"
+                      className="w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium font-mono"
                     />
                   </div>
-                  <p className="text-[11px] text-emerald-700 font-medium mt-1 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    Sistem akan mengirimkan pesan chat OTP langsung ke nomor WhatsApp ini untuk verifikasi.
-                  </p>
+                  {/* Live Interactive WhatsApp Format Indicator */}
+                  {regPhone.trim().length > 0 ? (
+                    <div className="flex items-center gap-1.5 text-[11px] mt-1.5 font-medium animate-in fade-in">
+                      {normalizePhoneNumber(regPhone).length >= 8 ? (
+                        <span className="text-emerald-700 flex items-center gap-1 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+                          <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+                          <span>Format Valid: <strong>+{toInternationalPhone(regPhone)}</strong> ({formatDisplayPhone(regPhone)})</span>
+                        </span>
+                      ) : (
+                        <span className="text-amber-700 flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg">
+                          <span>⚠️ Masukkan minimal 8 digit nomor HP ({normalizePhoneNumber(regPhone).length}/8).</span>
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-emerald-700 font-medium mt-1 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      Sistem akan mengirimkan pesan chat OTP langsung ke nomor WhatsApp ini untuk verifikasi.
+                    </p>
+                  )}
                 </div>
 
                 {/* Role Model Selection (Wajib memilih salah satu) */}
@@ -626,7 +655,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       <input
                         type={showRegPassword ? 'text' : 'password'}
                         value={regPassword}
-                        onChange={(e) => setRegPassword(e.target.value)}
+                        onChange={(e) => {
+                          setRegPassword(e.target.value);
+                          if (regError) setRegError(null);
+                        }}
                         placeholder="Min. 6 karakter"
                         className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
                       />
@@ -641,7 +673,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       <input
                         type={showRegPassword ? 'text' : 'password'}
                         value={regPasswordConfirm}
-                        onChange={(e) => setRegPasswordConfirm(e.target.value)}
+                        onChange={(e) => {
+                          setRegPasswordConfirm(e.target.value);
+                          if (regError) setRegError(null);
+                        }}
                         placeholder="Ketik ulang password"
                         className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
                       />

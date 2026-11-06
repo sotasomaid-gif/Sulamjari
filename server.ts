@@ -78,22 +78,30 @@ const DEFAULT_USERS: UserAccount[] = [
   },
 ];
 
-function normalizePhone(raw: string): string {
-  let cleaned = (raw || '').replace(/\D/g, '');
-  if (cleaned.startsWith('62')) {
+function normalizePhone(raw: string | undefined | null): string {
+  if (!raw) return '';
+  let cleaned = String(raw).trim().replace(/\D/g, '');
+  if (!cleaned) return '';
+
+  if (cleaned.startsWith('0062')) {
+    cleaned = '0' + cleaned.slice(4);
+  } else if (cleaned.startsWith('62')) {
+    cleaned = '0' + cleaned.slice(2);
+  } else if (cleaned.startsWith('8')) {
+    cleaned = '0' + cleaned;
+  } else if (cleaned.startsWith('008')) {
     cleaned = '0' + cleaned.slice(2);
   }
   return cleaned;
 }
 
-function toInternationalPhone(raw: string): string {
-  let cleaned = (raw || '').replace(/\D/g, '');
-  if (cleaned.startsWith('0')) {
-    cleaned = '62' + cleaned.slice(1);
-  } else if (!cleaned.startsWith('62')) {
-    cleaned = '62' + cleaned;
+function toInternationalPhone(raw: string | undefined | null): string {
+  const norm = normalizePhone(raw);
+  if (!norm) return '';
+  if (norm.startsWith('0')) {
+    return '62' + norm.slice(1);
   }
-  return cleaned;
+  return norm.startsWith('62') ? norm : '62' + norm;
 }
 
 function getStoredUsers(): UserAccount[] {
@@ -238,8 +246,8 @@ async function startServer() {
     }
 
     const cleanPhone = normalizePhone(noHp || username || '');
-    if (!cleanPhone || cleanPhone.length < 9) {
-      return res.status(400).json({ success: false, message: 'Nomor WhatsApp tidak valid (minimal 9 digit).' });
+    if (!cleanPhone || cleanPhone.length < 8) {
+      return res.status(400).json({ success: false, message: 'Nomor WhatsApp tidak valid (minimal 8 digit).' });
     }
 
     if (!password || password.length < 6) {

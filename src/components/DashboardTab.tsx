@@ -76,6 +76,7 @@ import {
   saveStoredUsers,
   formatDisplayPhone,
   normalizePhoneNumber,
+  toInternationalPhone,
   getWhatsAppWebUrl,
   fetchUsersFromServer,
   registerUserOnServer,
@@ -208,8 +209,8 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     }
 
     const cleanPhone = normalizePhoneNumber(newRegPhone);
-    if (!cleanPhone || cleanPhone.length < 9) {
-      setNewRegError('Nomor HP / WhatsApp tidak valid. Contoh: 08123456789.');
+    if (!cleanPhone || cleanPhone.length < 8) {
+      setNewRegError('Nomor HP / WhatsApp tidak valid. Contoh: 08123456789 (minimal 8-13 digit).');
       return;
     }
 
@@ -970,7 +971,13 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                     <input
                       type="text"
                       value={newRegNama}
-                      onChange={(e) => setNewRegNama(e.target.value)}
+                      onChange={(e) => {
+                        setNewRegNama(e.target.value);
+                        if (newRegError) setNewRegError(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') e.preventDefault();
+                      }}
                       placeholder="Contoh: Budi Santoso"
                       className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 font-medium"
                       required
@@ -984,11 +991,30 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                     <input
                       type="tel"
                       value={newRegPhone}
-                      onChange={(e) => setNewRegPhone(e.target.value)}
-                      placeholder="Contoh: 081234567890"
+                      onChange={(e) => {
+                        setNewRegPhone(e.target.value);
+                        if (newRegError) setNewRegError(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') e.preventDefault();
+                      }}
+                      placeholder="Contoh: 081234567890 atau 8123456789"
                       className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 font-medium font-mono"
                       required
                     />
+                    {newRegPhone.trim().length > 0 && (
+                      <div className="flex items-center gap-1.5 text-[11px] mt-1 font-medium">
+                        {normalizePhoneNumber(newRegPhone).length >= 8 ? (
+                          <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                            ✓ Format Valid: <strong>+{toInternationalPhone(newRegPhone)}</strong> ({formatDisplayPhone(newRegPhone)})
+                          </span>
+                        ) : (
+                          <span className="text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg">
+                            ⚠️ Masukkan minimal 8 digit nomor HP ({normalizePhoneNumber(newRegPhone).length}/8)
+                          </span>
+                        )}
+                      </div>
+                    )}
                     <p className="text-[10px] text-slate-500 mt-1">
                       Nomor ini akan menjadi username login dan tujuan pengiriman kode OTP WA.
                     </p>
@@ -1035,7 +1061,10 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                       <input
                         type={showNewRegPassword ? 'text' : 'password'}
                         value={newRegPassword}
-                        onChange={(e) => setNewRegPassword(e.target.value)}
+                        onChange={(e) => {
+                          setNewRegPassword(e.target.value);
+                          if (newRegError) setNewRegError(null);
+                        }}
                         placeholder="Minimal 6 karakter (contoh: pegawai123)"
                         className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 font-medium font-mono"
                         required

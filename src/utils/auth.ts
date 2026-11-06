@@ -50,9 +50,18 @@ export const DEFAULT_USERS: UserAccount[] = [
   },
 ];
 
-export const normalizePhoneNumber = (raw: string): string => {
-  let cleaned = raw.replace(/\D/g, '');
-  if (cleaned.startsWith('62')) {
+export const normalizePhoneNumber = (raw: string | undefined | null): string => {
+  if (!raw) return '';
+  let cleaned = String(raw).trim().replace(/\D/g, '');
+  if (!cleaned) return '';
+
+  if (cleaned.startsWith('0062')) {
+    cleaned = '0' + cleaned.slice(4);
+  } else if (cleaned.startsWith('62')) {
+    cleaned = '0' + cleaned.slice(2);
+  } else if (cleaned.startsWith('8')) {
+    cleaned = '0' + cleaned;
+  } else if (cleaned.startsWith('008')) {
     cleaned = '0' + cleaned.slice(2);
   }
   return cleaned;
@@ -147,14 +156,13 @@ export const generateOtpCode = (): string => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-export const toInternationalPhone = (rawPhone: string): string => {
-  let cleaned = rawPhone.replace(/\D/g, '');
-  if (cleaned.startsWith('0')) {
-    cleaned = '62' + cleaned.slice(1);
-  } else if (!cleaned.startsWith('62')) {
-    cleaned = '62' + cleaned;
+export const toInternationalPhone = (rawPhone: string | undefined | null): string => {
+  const norm = normalizePhoneNumber(rawPhone);
+  if (!norm) return '';
+  if (norm.startsWith('0')) {
+    return '62' + norm.slice(1);
   }
-  return cleaned;
+  return norm.startsWith('62') ? norm : '62' + norm;
 };
 
 export const getWhatsAppWebUrl = (phone: string, text: string): string => {
@@ -333,27 +341,34 @@ export const registerUserOnServer = async (userData: {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData),
     });
-    const data = await res.json();
-    if (res.ok && data.success && data.user) {
-      const current = getStoredUsers();
-      if (!current.some((u) => u.id === data.user.id)) {
-        const updated = [...current, data.user];
-        saveStoredUsers(updated);
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.user) {
+        const current = getStoredUsers();
+        if (!current.some((u) => u.id === data.user.id)) {
+          const updated = [...current, data.user];
+          saveStoredUsers(updated);
+        }
+        window.dispatchEvent(new CustomEvent('sulamjari-users-updated', { detail: data.user }));
+        return { success: true, message: data.message, user: data.user };
       }
-      window.dispatchEvent(new CustomEvent('sulamjari-users-updated', { detail: data.user }));
-      return { success: true, message: data.message, user: data.user };
-    } else {
-      return { success: false, message: data.message || 'Pendaftaran gagal diproses oleh server.' };
+    } else if (res.status === 409) {
+      const data = await res.json().catch(() => ({ message: 'Nomor HP / Username ini sudah terdaftar. Silakan langsung login.' }));
+      return { success: false, message: data.message || 'Nomor HP / Username ini sudah terdaftar. Silakan langsung login.' };
     }
+
+    // If static hosting (404/405) or server error, trigger fallback to ensure user can still register
+    throw new Error(`Server returned status ${res.status}`);
   } catch (err: any) {
-    // Graceful offline fallback
+    // Graceful offline & static hosting fallback
     const cleanPhone = normalizePhoneNumber(userData.noHp);
     const current = getStoredUsers();
     const existing = current.find(
-      (u) => normalizePhoneNumber(u.noHp) === cleanPhone || u.username === cleanPhone
+      (u) => normalizePhoneNumber(u.noHp) === cleanPhone || (u.username && normalizePhoneNumber(u.username) === cleanPhone)
     );
     if (existing) {
-      return { success: false, message: 'Nomor HP / Username ini sudah terdaftar.' };
+      return { success: false, message: 'Nomor HP / Username ini sudah terdaftar. Silakan langsung login.' };
     }
     const newUser: UserAccount = {
       id: `user-${Date.now()}`,
