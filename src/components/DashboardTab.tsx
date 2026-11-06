@@ -80,7 +80,6 @@ import {
   getWhatsAppWebUrl,
   fetchUsersFromServer,
   registerUserOnServer,
-  seedDemoUserOnServer,
 } from '../utils/auth';
 import { syncUserRecordToSheets } from '../utils/googleSheetsSync';
 import { BlurMask } from './BlurMask';
@@ -244,17 +243,6 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     setNewRegPhone('');
     setNewRegPassword('');
     setIsRegisterModalOpen(false);
-  };
-
-  // Handler: Buat Contoh Registrasi Simulasi untuk Uji Coba Cepat Persetujuan (Server Synced)
-  const handleSeedDemoRegistration = async () => {
-    const res = await seedDemoUserOnServer();
-    if (res.user) {
-      refreshDashboardUsers();
-      if (onUserRegistered) {
-        onUserRegistered(res.user);
-      }
-    }
   };
 
   // Filter for selected date
@@ -627,11 +615,11 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            {onOpenSheetsModal && (
+            {onOpenSheetsModal && activeRole === 'admin_pusat' && (
               <button
                 onClick={onOpenSheetsModal}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-600 text-white text-xs font-semibold shadow-xs transition-colors border border-emerald-400/30"
-                title="Buka panel koneksi & sinkronisasi Google Spreadsheet"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-600 text-white text-xs font-semibold shadow-xs transition-colors border border-emerald-400/30 cursor-pointer"
+                title="Buka panel koneksi & sinkronisasi Google Spreadsheet (Khusus Admin Pusat)"
               >
                 <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
                 <span className="hidden sm:inline">Database Sheets</span>
@@ -691,16 +679,6 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                   >
                     <UserPlus className="w-3.5 h-3.5" />
                     <span>+ Daftarkan Pegawai</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleSeedDemoRegistration}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-                    title="Buat 1 contoh pendaftaran baru untuk menguji alur persetujuan & OTP"
-                  >
-                    <Zap className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Uji Pendaftaran</span>
                   </button>
 
                   <button
@@ -888,7 +866,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                     </span>
                   </div>
                   <div className="text-slate-500 mt-0.5">
-                    Tidak ada antrean permohonan pendaftaran yang tertunda saat ini. Anda dapat mendaftarkan akun pegawai baru kapan saja atau melakukan uji coba simulasi.
+                    Tidak ada antrean permohonan pendaftaran yang tertunda saat ini. Anda dapat mendaftarkan akun pegawai baru kapan saja menggunakan tombol di atas.
                   </div>
                 </div>
               </div>
@@ -901,16 +879,6 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   <span>+ Daftarkan Pegawai</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSeedDemoRegistration}
-                  className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold rounded-xl border border-amber-300 transition-colors flex items-center gap-1.5 cursor-pointer"
-                  title="Tambahkan 1 data pendaftaran simulasi untuk menguji alur persetujuan"
-                >
-                  <Zap className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Uji Simulasi Pendaftaran</span>
                 </button>
 
                 <button

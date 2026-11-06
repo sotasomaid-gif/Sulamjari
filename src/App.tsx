@@ -18,6 +18,7 @@ import {
   ModalBackup,
 } from './components/Modals';
 import { AuthModal } from './components/AuthModal';
+import { UserProfileModal } from './components/UserProfileModal';
 import { ModalGoogleSheetsSync } from './components/ModalGoogleSheetsSync';
 import {
   BahanBaku,
@@ -98,6 +99,7 @@ export default function App() {
   const [printData, setPrintData] = useState<any>(null);
   const [modalBackupOpen, setModalBackupOpen] = useState(false);
   const [modalSheetsOpen, setModalSheetsOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   // Google Spreadsheet & Apps Script Config State
   const [sheetsConfig, setSheetsConfig] = useState<SheetsSyncConfig>(getStoredSheetsConfig);
@@ -680,20 +682,26 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Responsive Navigation Bar with Role Switcher & Google Sheets DB */}
+      {/* Main Responsive Navigation Bar with Profile Modal & Google Sheets DB */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={handleNavigateTab}
         onOpenModal={handleOpenModal}
-        onOpenSheetsModal={() => setModalSheetsOpen(true)}
+        onOpenSheetsModal={() => {
+          if (activeRole === 'admin_pusat') {
+            setModalSheetsOpen(true);
+          } else {
+            showToast('⚠️ Pengaturan database Google Sheets hanya dapat diakses oleh Admin Pusat.');
+          }
+        }}
         sheetsConnected={sheetsConfig.lastSyncStatus === 'success' && !!sheetsConfig.webAppUrl}
         lowStockCount={lowStockCount}
         piutangCount={piutangCount}
         activeRole={activeRole}
-        onSwitchRole={handleSwitchRole}
         rolePermissions={currentRolePermissions}
         currentUser={currentUser}
         onOpenAuthModal={() => setAuthModalOpen(true)}
+        onOpenProfileModal={() => setProfileModalOpen(true)}
         onLogout={handleLogout}
       />
 
@@ -709,7 +717,7 @@ export default function App() {
             onSelectDate={setSelectedDate}
             onNavigateTab={setActiveTab}
             onOpenModal={handleOpenModal}
-            onOpenSheetsModal={() => setModalSheetsOpen(true)}
+            onOpenSheetsModal={activeRole === 'admin_pusat' ? () => setModalSheetsOpen(true) : undefined}
             targetProduksiKg={targetProduksiKg}
             onUpdateTargetProduksi={handleUpdateTargetProduksi}
             onTriggerTargetToast={handleTriggerTargetToast}
@@ -917,9 +925,9 @@ export default function App() {
         onReset={resetAllData}
       />
 
-      {/* Google Spreadsheet & Apps Script Database Modal */}
+      {/* Google Spreadsheet & Apps Script Database Modal (Khusus Admin Pusat) */}
       <ModalGoogleSheetsSync
-        isOpen={modalSheetsOpen}
+        isOpen={modalSheetsOpen && activeRole === 'admin_pusat'}
         onClose={() => setModalSheetsOpen(false)}
         config={sheetsConfig}
         onUpdateConfig={setSheetsConfig}
@@ -930,9 +938,28 @@ export default function App() {
         targetProduksiKg={targetProduksiKg}
         users={usersList}
         permissions={systemPermissions}
-        currentUserName={currentUser?.nama || 'Admin'}
+        currentUserName={currentUser?.nama || 'Admin Pusat'}
         onDataPulledFromSheets={handleDataPulledFromSheets}
         showToast={showToast}
+      />
+
+      {/* User Complete Profile & Permissions Information Modal */}
+      <UserProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        currentUser={currentUser}
+        activeRole={activeRole}
+        permissions={systemPermissions}
+        onLogout={handleLogout}
+        onOpenAuthModal={() => setAuthModalOpen(true)}
+        onOpenSheetsModal={() => {
+          if (activeRole === 'admin_pusat') {
+            setModalSheetsOpen(true);
+          } else {
+            showToast('⚠️ Pengaturan database Google Sheets hanya dapat diakses oleh Admin Pusat.');
+          }
+        }}
+        onNavigateTab={handleNavigateTab}
       />
 
       {/* User Login & Register with WA OTP Modal */}

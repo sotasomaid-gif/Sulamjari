@@ -42,10 +42,11 @@ interface NavbarProps {
   lowStockCount: number;
   piutangCount: number;
   activeRole: UserRole;
-  onSwitchRole: (role: UserRole) => void;
+  onSwitchRole?: (role: UserRole) => void;
   rolePermissions: RolePermissionMap;
   currentUser: UserAccount | null;
   onOpenAuthModal: () => void;
+  onOpenProfileModal?: () => void;
   onLogout: () => void;
 }
 
@@ -62,24 +63,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   rolePermissions,
   currentUser,
   onOpenAuthModal,
+  onOpenProfileModal,
   onLogout,
 }) => {
-  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
-  const roleDropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        roleDropdownRef.current &&
-        !roleDropdownRef.current.contains(event.target as Node)
-      ) {
-        setRoleDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const navItems = [
     {
@@ -172,111 +158,30 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Center-Right: Role Switcher & Quick Action Buttons */}
+          {/* Center-Right: Quick Action Buttons & Role Badge */}
           <div className="flex items-center gap-2">
-            {/* User Role Switcher Dropdown */}
-            <div className="relative" ref={roleDropdownRef}>
-              <button
-                onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
-                className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 text-slate-800 transition-all text-xs font-semibold shadow-2xs"
-                title="Ganti Peran Pengguna Aktif"
+            {/* Active User Role Badge (Informative pill) */}
+            <button
+              type="button"
+              onClick={onOpenProfileModal || onOpenAuthModal}
+              className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 text-slate-800 transition-all text-xs font-semibold shadow-2xs cursor-pointer"
+              title="Peran Akun Aktif (Klik untuk melihat info profil lengkap & hak akses)"
+            >
+              <div
+                className={`w-5 h-5 rounded-md ${ROLE_DEFINITIONS[activeRole].avatarBg} text-white flex items-center justify-center text-[10px] font-bold`}
               >
-                <div
-                  className={`w-5 h-5 rounded-md ${ROLE_DEFINITIONS[activeRole].avatarBg} text-white flex items-center justify-center text-[10px] font-bold`}
-                >
-                  {activeRole === 'admin_pusat'
-                    ? '👑'
-                    : activeRole === 'admin_pabrik'
-                    ? '🏭'
-                    : '👷'}
-                </div>
-                <div className="text-left hidden sm:block">
-                  <span className="font-bold block leading-none text-slate-900">
-                    {ROLE_DEFINITIONS[activeRole].title}
-                  </span>
-                </div>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-              </button>
-
-              {roleDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in-50 duration-100">
-                  <div className="px-3 py-2 border-b border-slate-100">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Peran Pengguna Aktif:
-                    </span>
-                    <span className="text-xs text-slate-600 block mt-0.5">
-                      Ganti peran untuk menguji tampilan &amp; sensor blur data.
-                    </span>
-                  </div>
-
-                  <div className="p-1 space-y-1">
-                    {(['admin_pusat', 'admin_pabrik', 'kepala_pabrik'] as UserRole[]).map(
-                      (r) => {
-                        const info = ROLE_DEFINITIONS[r];
-                        const isSelected = activeRole === r;
-                        return (
-                          <button
-                            key={r}
-                            onClick={() => {
-                              onSwitchRole(r);
-                              setRoleDropdownOpen(false);
-                            }}
-                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs transition-colors ${
-                              isSelected
-                                ? 'bg-red-50 text-red-900 font-bold'
-                                : 'hover:bg-slate-50 text-slate-700'
-                            }`}
-                          >
-                            <div
-                              className={`w-6 h-6 rounded-lg ${info.avatarBg} text-white flex items-center justify-center text-xs shrink-0`}
-                            >
-                              {r === 'admin_pusat'
-                                ? '👑'
-                                : r === 'admin_pabrik'
-                                ? '🏭'
-                                : '👷'}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <span className="font-bold truncate">{info.title}</span>
-                                {isSelected && (
-                                  <span className="text-[10px] text-red-600 font-bold">
-                                    Aktif
-                                  </span>
-                                )}
-                              </div>
-                              <span className="text-[11px] text-slate-400 block truncate">
-                                {info.subtitle}
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      }
-                    )}
-                  </div>
-
-                  <div className="p-1 pt-1 border-t border-slate-100">
-                    {activeRole === 'admin_pusat' ? (
-                      <button
-                        onClick={() => {
-                          setActiveTab('hak-akses');
-                          setRoleDropdownOpen(false);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left text-xs text-red-700 hover:bg-red-50 font-bold transition-colors"
-                      >
-                        <ShieldCheck className="w-4 h-4 text-red-600 shrink-0" />
-                        <span>Pengaturan Hak Akses (Matrix)</span>
-                      </button>
-                    ) : (
-                      <div className="px-3 py-2 text-[11px] text-slate-400 flex items-center gap-1.5 italic bg-slate-50 rounded-xl">
-                        <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>Hak Akses dikunci khusus Admin Pusat</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+                {activeRole === 'admin_pusat'
+                  ? '👑'
+                  : activeRole === 'admin_pabrik'
+                  ? '🏭'
+                  : '👷'}
+              </div>
+              <div className="text-left hidden sm:block">
+                <span className="font-bold block leading-none text-slate-900">
+                  {ROLE_DEFINITIONS[activeRole].title}
+                </span>
+              </div>
+            </button>
 
             <div className="h-6 w-px bg-slate-200 mx-0.5 hidden sm:block"></div>
 
@@ -327,52 +232,56 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {/* Google Sheets & Apps Script Database Connector Button */}
-            <button
-              onClick={onOpenSheetsModal}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all border shadow-2xs ${
-                sheetsConnected
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-emerald-700 hover:border-emerald-300'
-              }`}
-              title="Database Google Spreadsheet & Apps Script (Semua Modul Terkoneksi)"
-            >
-              <FileSpreadsheet className={`w-4 h-4 ${sheetsConnected ? 'text-emerald-600' : 'text-emerald-700'}`} />
-              <span className="hidden md:inline">Google Sheets</span>
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  sheetsConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'
+            {/* Google Sheets & Apps Script Database Connector Button (Khusus Admin Pusat) */}
+            {activeRole === 'admin_pusat' && (
+              <button
+                onClick={onOpenSheetsModal}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all border shadow-2xs cursor-pointer ${
+                  sheetsConnected
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-emerald-700 hover:border-emerald-300'
                 }`}
-                title={sheetsConnected ? 'Terkoneksi ke Cloud Sheets' : 'Koneksi Manual / Belum Aktif'}
-              ></span>
-            </button>
+                title="Database Google Spreadsheet & Apps Script (Khusus Admin Pusat)"
+              >
+                <FileSpreadsheet className={`w-4 h-4 ${sheetsConnected ? 'text-emerald-600' : 'text-emerald-700'}`} />
+                <span className="hidden md:inline">Google Sheets</span>
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    sheetsConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'
+                  }`}
+                  title={sheetsConnected ? 'Terkoneksi ke Cloud Sheets' : 'Koneksi Manual / Belum Aktif'}
+                ></span>
+              </button>
+            )}
 
             <div className="h-6 w-px bg-slate-200 mx-1"></div>
 
-            {/* User Session Profile & Logout / Switch Account */}
+            {/* User Session Profile & Details Modal */}
             {currentUser ? (
               <div className="flex items-center gap-2">
                 <button
-                  onClick={onOpenAuthModal}
-                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-all"
-                  title="Klik untuk ganti akun atau daftar baru"
+                  onClick={onOpenProfileModal || onOpenAuthModal}
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-all group cursor-pointer shadow-2xs hover:border-slate-300"
+                  title="Klik untuk melihat informasi akun lengkap & hak akses"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                  <div
+                    className={`w-7 h-7 rounded-lg ${ROLE_DEFINITIONS[activeRole].avatarBg} text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-xs`}
+                  >
                     {currentUser.nama.charAt(0).toUpperCase()}
                   </div>
-                  <div className="hidden lg:block min-w-0 pr-1">
-                    <div className="text-xs font-bold text-slate-900 truncate max-w-[120px]">
+                  <div className="hidden sm:block min-w-0 pr-1">
+                    <div className="text-xs font-bold text-slate-900 truncate max-w-[120px] group-hover:text-red-600 transition-colors">
                       {currentUser.nama}
                     </div>
-                    <div className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
-                      <span>WA: {formatDisplayPhone(currentUser.noHp)}</span>
+                    <div className="text-[10px] text-slate-500 font-semibold flex items-center gap-1">
+                      <span>{ROLE_DEFINITIONS[activeRole].title}</span>
                     </div>
                   </div>
                 </button>
 
                 <button
                   onClick={onLogout}
-                  className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-slate-200"
+                  className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-slate-200 cursor-pointer"
                   title="Keluar / Logout dari Sesi"
                 >
                   <LogOut className="w-4 h-4" />

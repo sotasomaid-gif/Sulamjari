@@ -58,7 +58,7 @@ interface PengaturanHakAksesTabProps {
   permissions: SystemPermissions;
   activeRole: UserRole;
   onUpdatePermissions: (newPermissions: SystemPermissions) => void;
-  onSwitchRole: (newRole: UserRole) => void;
+  onSwitchRole?: (newRole: UserRole) => void;
   onResetPermissions: () => void;
   showToast: (msg: string) => void;
   usersList?: UserAccount[];
@@ -280,13 +280,10 @@ export const PengaturanHakAksesTab: React.FC<PengaturanHakAksesTabProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-          <button
-            onClick={() => onSwitchRole('admin_pusat')}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <span>👑 Masuk Sebagai Admin Pusat</span>
-          </button>
+        <div className="pt-2">
+          <div className="text-xs text-slate-600 bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl inline-block">
+            🔒 Silakan masuk menggunakan akun resmi <strong>Admin Pusat</strong> melalui menu akun di pojok kanan atas.
+          </div>
         </div>
       </div>
     );
@@ -644,215 +641,6 @@ export const PengaturanHakAksesTab: React.FC<PengaturanHakAksesTabProps> = ({
             </table>
           </div>
         )}
-      </div>
-
-      {/* Role Switcher & Live Simulation Cards */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <UserCheck className="w-4 h-4 text-slate-600" />
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-              Simulasi &amp; Ganti Peran Aktif
-            </h2>
-          </div>
-          <span className="text-xs text-slate-500">
-            Klik salah satu kartu di bawah untuk mencoba tampilan sebagai peran tersebut
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {roles.map((roleKey) => {
-            const role = ROLE_DEFINITIONS[roleKey];
-            const isCurrentActive = activeRole === roleKey;
-            const rolePerms = localPermissions[roleKey];
-            const activePermCount = Object.values(rolePerms).filter(Boolean).length;
-            const totalPermCount = PERMISSION_LIST.length;
-
-            return (
-              <div
-                key={roleKey}
-                onClick={() => {
-                  onSwitchRole(roleKey);
-                  showToast(`👤 Beralih peran ke: ${role.title} (${role.subtitle})`);
-                }}
-                className={`relative rounded-2xl p-4 sm:p-5 cursor-pointer transition-all border-2 text-left group ${
-                  isCurrentActive
-                    ? 'bg-white border-red-600 shadow-md ring-4 ring-red-500/10'
-                    : 'bg-white/70 hover:bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
-                }`}
-              >
-                {/* Active Indicator Badge */}
-                {isCurrentActive && (
-                  <div className="absolute top-3.5 right-3.5">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-600 text-white shadow-2xs">
-                      <CheckCircle2 className="w-3 h-3" /> Aktif Digunakan
-                    </span>
-                  </div>
-                )}
-
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`w-11 h-11 rounded-xl ${role.avatarBg} text-white flex items-center justify-center font-bold text-base shadow-xs shrink-0`}
-                  >
-                    {roleKey === 'admin_pusat' ? '👑' : roleKey === 'admin_pabrik' ? '🏭' : '👷'}
-                  </div>
-                  <div className="pr-16">
-                    <h3 className="font-bold text-sm sm:text-base text-slate-900 flex items-center gap-1.5">
-                      {role.title}
-                    </h3>
-                    <p className="text-xs text-slate-500 font-medium">{role.subtitle}</p>
-                  </div>
-                </div>
-
-                <p className="text-xs text-slate-600 mt-3 line-clamp-2 leading-relaxed">
-                  {role.description}
-                </p>
-
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Izin Diberikan:</span>
-                  <span className="font-bold text-slate-800">
-                    {activePermCount} / {totalPermCount} Fitur
-                  </span>
-                </div>
-
-                <div className="mt-2 w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-300 ${
-                      roleKey === 'admin_pusat'
-                        ? 'bg-red-600'
-                        : roleKey === 'admin_pabrik'
-                        ? 'bg-blue-600'
-                        : 'bg-amber-500'
-                    }`}
-                    style={{
-                      width: `${(activePermCount / totalPermCount) * 100}%`,
-                    }}
-                  ></div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Live Interactive Blur Sandbox Simulation */}
-      <div className="bg-gradient-to-r from-amber-50 via-rose-50 to-orange-50 border border-amber-200/80 rounded-2xl p-4 sm:p-5 space-y-3">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-600" />
-            <h3 className="text-sm font-bold text-slate-900">
-              Pratinjau Efek Blur Langsung (Peran Aktif:{' '}
-              <span className={ROLE_DEFINITIONS[activeRole].textColor}>
-                {ROLE_DEFINITIONS[activeRole].title}
-              </span>
-              )
-            </h3>
-          </div>
-          <span className="text-[11px] text-slate-600 bg-white/70 px-2.5 py-1 rounded-lg border border-amber-200">
-            Coba centang/batalkan checklist di bawah untuk melihat efek langsung
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-          {/* Item 1: Omset Keuangan */}
-          <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">
-            <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-              <span>Total Omset Harian</span>
-              <span
-                className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                  localPermissions[activeRole].view_omset_keuangan
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-rose-100 text-rose-800'
-                }`}
-              >
-                {localPermissions[activeRole].view_omset_keuangan ? 'Terlihat' : 'BLUR AKTIF'}
-              </span>
-            </div>
-            {localPermissions[activeRole].view_omset_keuangan ? (
-              <div className="text-base font-extrabold text-slate-900">
-                {formatRupiah(4850000)}
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <span className="filter blur-[5px] select-none text-base font-bold text-slate-400">
-                  Rp 4.850.000
-                </span>
-                <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-0.5">
-                  <Lock className="w-2.5 h-2.5 text-slate-400" /> Blur
-                </span>
-              </div>
-            )}
-            <p className="text-[10px] text-slate-600 mt-1">
-              Dikontrol oleh izin <code>view_omset_keuangan</code>
-            </p>
-          </div>
-
-          {/* Item 2: Harga Beli Kulakan */}
-          <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">
-            <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-              <span>Harga Kulakan Tepung Cakra</span>
-              <span
-                className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                  localPermissions[activeRole].view_harga_beli_bahan
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-rose-100 text-rose-800'
-                }`}
-              >
-                {localPermissions[activeRole].view_harga_beli_bahan ? 'Terlihat' : 'BLUR AKTIF'}
-              </span>
-            </div>
-            {localPermissions[activeRole].view_harga_beli_bahan ? (
-              <div className="text-base font-extrabold text-slate-900">
-                {formatRupiah(11400)} / Kg
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <span className="filter blur-[5px] select-none text-base font-bold text-slate-400">
-                  Rp 11.400 / Kg
-                </span>
-                <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-0.5">
-                  <Lock className="w-2.5 h-2.5 text-slate-400" /> Blur
-                </span>
-              </div>
-            )}
-            <p className="text-[10px] text-slate-600 mt-1">
-              Dikontrol oleh izin <code>view_harga_beli_bahan</code>
-            </p>
-          </div>
-
-          {/* Item 3: Piutang Pelanggan */}
-          <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">
-            <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-              <span>Sisa Piutang Toko Depot</span>
-              <span
-                className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                  localPermissions[activeRole].view_piutang
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-rose-100 text-rose-800'
-                }`}
-              >
-                {localPermissions[activeRole].view_piutang ? 'Terlihat' : 'BLUR AKTIF'}
-              </span>
-            </div>
-            {localPermissions[activeRole].view_piutang ? (
-              <div className="text-base font-extrabold text-amber-700">
-                {formatRupiah(650000)} (3 Nota)
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <span className="filter blur-[5px] select-none text-base font-bold text-slate-400">
-                  Rp 650.000 (3 Nota)
-                </span>
-                <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-0.5">
-                  <Lock className="w-2.5 h-2.5 text-slate-400" /> Blur
-                </span>
-              </div>
-            )}
-            <p className="text-[10px] text-slate-600 mt-1">
-              Dikontrol oleh izin <code>view_piutang</code>
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* Main Checklist Matrix Table */}
