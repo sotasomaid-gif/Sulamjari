@@ -29,7 +29,6 @@ interface UserProfileModalProps {
   permissions?: SystemPermissions;
   onLogout: () => void;
   onOpenAuthModal: () => void;
-  onOpenSheetsModal?: () => void;
   onNavigateTab?: (tab: any) => void;
 }
 
@@ -41,7 +40,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   permissions,
   onLogout,
   onOpenAuthModal,
-  onOpenSheetsModal,
   onNavigateTab,
 }) => {
   if (!isOpen || !currentUser) return null;
@@ -293,21 +291,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     <Users className="w-3.5 h-3.5 text-red-600" />
                     <span>Kelola Direktori Pegawai &amp; Hak Akses</span>
                     <ArrowRight className="w-3 h-3 text-red-400" />
-                  </button>
-                )}
-
-                {onOpenSheetsModal && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onOpenSheetsModal();
-                    }}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                  >
-                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-200" />
-                    <span>Buka Database Google Sheets</span>
-                    <ArrowRight className="w-3 h-3 text-emerald-300" />
                   </button>
                 )}
               </div>

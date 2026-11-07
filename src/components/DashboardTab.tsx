@@ -31,7 +31,6 @@ import {
   BarChart3,
   Calendar,
   TrendingDown,
-  FileSpreadsheet,
   Hourglass,
   UserCheck,
   Eye,
@@ -93,7 +92,6 @@ interface DashboardTabProps {
   onSelectDate: (date: string) => void;
   onNavigateTab: (tab: any) => void;
   onOpenModal: (type: 'masuk' | 'keluar' | 'penjualan' | 'operasional' | 'bahan') => void;
-  onOpenSheetsModal?: () => void;
   targetProduksiKg: number;
   onUpdateTargetProduksi: (newTarget: number) => void;
   onTriggerTargetToast: (currentKg: number, targetKg: number) => void;
@@ -115,7 +113,6 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   onSelectDate,
   onNavigateTab,
   onOpenModal,
-  onOpenSheetsModal,
   targetProduksiKg,
   onUpdateTargetProduksi,
   onTriggerTargetToast,
@@ -615,18 +612,6 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            {onOpenSheetsModal && activeRole === 'admin_pusat' && (
-              <button
-                onClick={onOpenSheetsModal}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-600 text-white text-xs font-semibold shadow-xs transition-colors border border-emerald-400/30 cursor-pointer"
-                title="Buka panel koneksi & sinkronisasi Google Spreadsheet (Khusus Admin Pusat)"
-              >
-                <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
-                <span className="hidden sm:inline">Database Sheets</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span>
-              </button>
-            )}
-
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-2.5 border border-white/20 flex items-center gap-2.5">
               <span className="text-xs font-medium text-red-100">Pilih Tanggal:</span>
               <input

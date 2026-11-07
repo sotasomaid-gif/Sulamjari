@@ -21,12 +21,15 @@ export interface SyncLogEntry {
 const CONFIG_STORAGE_KEY = 'sulamjari_sheets_sync_config_v1';
 const LOGS_STORAGE_KEY = 'sulamjari_sheets_sync_logs_v1';
 
+export const PERMANENT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby9URmN_QFwwhQIxKzJJxqFkj7v8paqGpVcKSTxc-XTqySFQZdG67Zc1VK3xNLat7wHmg/exec';
+export const PERMANENT_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1S2zzxqRYe8Xb_jR88RfXqJwl26JBje-hEtD0Vc499pw/edit';
+
 export const DEFAULT_SHEETS_CONFIG: SheetsSyncConfig = {
-  webAppUrl: '',
-  spreadsheetUrl: '',
+  webAppUrl: PERMANENT_WEB_APP_URL,
+  spreadsheetUrl: PERMANENT_SPREADSHEET_URL,
   autoSyncEnabled: true,
-  lastSyncStatus: 'idle',
-  lastSyncMessage: 'Belum dikonfigurasikan',
+  lastSyncStatus: 'success',
+  lastSyncMessage: 'Koneksi database otomatis aktif',
 };
 
 // Ready-to-deploy Google Apps Script Code template
@@ -830,7 +833,14 @@ export const getStoredSheetsConfig = (): SheetsSyncConfig => {
   try {
     const raw = localStorage.getItem(CONFIG_STORAGE_KEY);
     if (!raw) return DEFAULT_SHEETS_CONFIG;
-    return { ...DEFAULT_SHEETS_CONFIG, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    return {
+      ...DEFAULT_SHEETS_CONFIG,
+      ...parsed,
+      webAppUrl: parsed?.webAppUrl && parsed.webAppUrl.trim().startsWith('http') ? parsed.webAppUrl : PERMANENT_WEB_APP_URL,
+      spreadsheetUrl: parsed?.spreadsheetUrl && parsed.spreadsheetUrl.trim().startsWith('http') ? parsed.spreadsheetUrl : PERMANENT_SPREADSHEET_URL,
+      autoSyncEnabled: true,
+    };
   } catch {
     return DEFAULT_SHEETS_CONFIG;
   }

@@ -138,17 +138,26 @@ function saveStoredUsers(users: UserAccount[]) {
   }
 }
 
+const DEFAULT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby9URmN_QFwwhQIxKzJJxqFkj7v8paqGpVcKSTxc-XTqySFQZdG67Zc1VK3xNLat7wHmg/exec';
+const DEFAULT_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1S2zzxqRYe8Xb_jR88RfXqJwl26JBje-hEtD0Vc499pw/edit';
+
 function getSheetsConfig() {
   try {
     if (fs.existsSync(SHEETS_CONFIG_FILE)) {
-      return JSON.parse(fs.readFileSync(SHEETS_CONFIG_FILE, 'utf-8'));
+      const cfg = JSON.parse(fs.readFileSync(SHEETS_CONFIG_FILE, 'utf-8'));
+      return {
+        ...cfg,
+        webAppUrl: cfg.webAppUrl && cfg.webAppUrl.trim().startsWith('http') ? cfg.webAppUrl : DEFAULT_WEB_APP_URL,
+        spreadsheetUrl: cfg.spreadsheetUrl && cfg.spreadsheetUrl.trim().startsWith('http') ? cfg.spreadsheetUrl : DEFAULT_SPREADSHEET_URL,
+        autoSyncEnabled: true,
+      };
     }
   } catch (e) {
     console.error('Error reading sheets config:', e);
   }
   return {
-    webAppUrl: '',
-    spreadsheetUrl: '',
+    webAppUrl: DEFAULT_WEB_APP_URL,
+    spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
     autoSyncEnabled: true,
   };
 }
@@ -259,8 +268,8 @@ async function startServer() {
     });
   });
 
-  // 2. POST /api/register - Online registration from any device/browser
-  app.post('/api/register', (req: Request, res: Response) => {
+  // 2. POST /api/register & /api/users/register - Online registration from any device/browser
+  const handleRegister = (req: Request, res: Response) => {
     const { nama, noHp, username, password, role } = req.body;
 
     const namaTrim = (nama || '').trim();
@@ -317,7 +326,10 @@ async function startServer() {
       message: 'Pendaftaran berhasil! Akun Anda sedang menunggu persetujuan dari Admin Pusat.',
       user: newUser,
     });
-  });
+  };
+
+  app.post('/api/register', handleRegister);
+  app.post('/api/users/register', handleRegister);
 
   // 3. POST /api/users/approve - Admin Pusat approves applicant & generates OTP
   app.post('/api/users/approve', (req: Request, res: Response) => {

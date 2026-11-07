@@ -31,5 +31,20 @@
     "statusPersetujuan": "DISETUJUI",
     "isVerified": true,
     "createdAt": "2026-01-10"
+  },
+  {
+    "id": "user-1794035733333",
+    "nama": "Tata",
+    "username": "08994211212",
+    "password": "@123Juara",
+    "noHp": "08994211212",
+    "role": "admin_pabrik",
+    "statusPersetujuan": "DISETUJUI",
+    "isVerified": true,
+    "lastOtp": "668886",
+    "createdAt": "2026-11-07",
+    "disetujuiOleh": "Admin Pusat (Owner)",
+    "disetujuiPada": "2026-11-07T07:21:58.243Z",
+    "otpExpiresAt": 1794037018243
   }
 ]

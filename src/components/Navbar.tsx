@@ -17,7 +17,6 @@ import {
   Lock,
   LogOut,
   User,
-  FileSpreadsheet,
 } from 'lucide-react';
 import { UserRole, RolePermissionMap, UserAccount } from '../types';
 import { ROLE_DEFINITIONS } from '../utils/rbac';
@@ -37,8 +36,6 @@ interface NavbarProps {
   activeTab: TabId;
   setActiveTab: (tab: TabId) => void;
   onOpenModal: (type: 'masuk' | 'keluar' | 'penjualan' | 'operasional' | 'bahan' | 'print' | 'backup') => void;
-  onOpenSheetsModal: () => void;
-  sheetsConnected: boolean;
   lowStockCount: number;
   piutangCount: number;
   activeRole: UserRole;
@@ -54,8 +51,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
   onOpenModal,
-  onOpenSheetsModal,
-  sheetsConnected,
   lowStockCount,
   piutangCount,
   activeRole,
@@ -229,28 +224,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Download className="w-4 h-4 text-slate-500" />
                 <span className="hidden md:inline">Cadangan</span>
-              </button>
-            )}
-
-            {/* Google Sheets & Apps Script Database Connector Button (Khusus Admin Pusat) */}
-            {activeRole === 'admin_pusat' && (
-              <button
-                onClick={onOpenSheetsModal}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all border shadow-2xs cursor-pointer ${
-                  sheetsConnected
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-emerald-700 hover:border-emerald-300'
-                }`}
-                title="Database Google Spreadsheet & Apps Script (Khusus Admin Pusat)"
-              >
-                <FileSpreadsheet className={`w-4 h-4 ${sheetsConnected ? 'text-emerald-600' : 'text-emerald-700'}`} />
-                <span className="hidden md:inline">Google Sheets</span>
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    sheetsConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'
-                  }`}
-                  title={sheetsConnected ? 'Terkoneksi ke Cloud Sheets' : 'Koneksi Manual / Belum Aktif'}
-                ></span>
               </button>
             )}
 

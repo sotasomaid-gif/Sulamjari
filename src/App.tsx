@@ -19,7 +19,6 @@ import {
 } from './components/Modals';
 import { AuthModal } from './components/AuthModal';
 import { UserProfileModal } from './components/UserProfileModal';
-import { ModalGoogleSheetsSync } from './components/ModalGoogleSheetsSync';
 import {
   BahanBaku,
   MutasiStok,
@@ -101,7 +100,6 @@ export default function App() {
   const [modalPrintOpen, setModalPrintOpen] = useState(false);
   const [printData, setPrintData] = useState<any>(null);
   const [modalBackupOpen, setModalBackupOpen] = useState(false);
-  const [modalSheetsOpen, setModalSheetsOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   // Google Spreadsheet & Apps Script Config State
@@ -755,19 +753,11 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Responsive Navigation Bar with Profile Modal & Google Sheets DB */}
+      {/* Main Responsive Navigation Bar with Profile Modal */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={handleNavigateTab}
         onOpenModal={handleOpenModal}
-        onOpenSheetsModal={() => {
-          if (activeRole === 'admin_pusat') {
-            setModalSheetsOpen(true);
-          } else {
-            showToast('⚠️ Pengaturan database Google Sheets hanya dapat diakses oleh Admin Pusat.');
-          }
-        }}
-        sheetsConnected={sheetsConfig.lastSyncStatus === 'success' && !!sheetsConfig.webAppUrl}
         lowStockCount={lowStockCount}
         piutangCount={piutangCount}
         activeRole={activeRole}
@@ -790,7 +780,6 @@ export default function App() {
             onSelectDate={setSelectedDate}
             onNavigateTab={setActiveTab}
             onOpenModal={handleOpenModal}
-            onOpenSheetsModal={activeRole === 'admin_pusat' ? () => setModalSheetsOpen(true) : undefined}
             targetProduksiKg={targetProduksiKg}
             onUpdateTargetProduksi={handleUpdateTargetProduksi}
             onTriggerTargetToast={handleTriggerTargetToast}
@@ -998,24 +987,6 @@ export default function App() {
         onReset={resetAllData}
       />
 
-      {/* Google Spreadsheet & Apps Script Database Modal (Khusus Admin Pusat) */}
-      <ModalGoogleSheetsSync
-        isOpen={modalSheetsOpen && activeRole === 'admin_pusat'}
-        onClose={() => setModalSheetsOpen(false)}
-        config={sheetsConfig}
-        onUpdateConfig={setSheetsConfig}
-        bahanList={bahanList}
-        mutasiList={mutasiList}
-        penjualanList={penjualanList}
-        operasionalList={operasionalList}
-        targetProduksiKg={targetProduksiKg}
-        users={usersList}
-        permissions={systemPermissions}
-        currentUserName={currentUser?.nama || 'Admin Pusat'}
-        onDataPulledFromSheets={handleDataPulledFromSheets}
-        showToast={showToast}
-      />
-
       {/* User Complete Profile & Permissions Information Modal */}
       <UserProfileModal
         isOpen={profileModalOpen}
@@ -1025,13 +996,6 @@ export default function App() {
         permissions={systemPermissions}
         onLogout={handleLogout}
         onOpenAuthModal={() => setAuthModalOpen(true)}
-        onOpenSheetsModal={() => {
-          if (activeRole === 'admin_pusat') {
-            setModalSheetsOpen(true);
-          } else {
-            showToast('⚠️ Pengaturan database Google Sheets hanya dapat diakses oleh Admin Pusat.');
-          }
-        }}
         onNavigateTab={handleNavigateTab}
       />
 
