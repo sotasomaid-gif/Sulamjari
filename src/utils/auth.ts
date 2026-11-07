@@ -16,17 +16,6 @@ export const DEFAULT_USERS: UserAccount[] = [
     createdAt: '2026-01-01',
   },
   {
-    id: 'user-pending-andi-1',
-    nama: 'Andi Saputra (Mandor Produksi)',
-    username: '081298765432',
-    noHp: '081298765432',
-    password: 'password123',
-    role: 'kepala_pabrik',
-    statusPersetujuan: 'MENUNGGU_PERSETUJUAN',
-    isVerified: false,
-    createdAt: '2026-03-01',
-  },
-  {
     id: 'user-admin-pabrik-1',
     nama: 'Siti Rahma (Kasir & Staf)',
     username: '081233445566',
@@ -80,6 +69,14 @@ export const getStoredUsers = (): UserAccount[] => {
     const raw = localStorage.getItem(STORAGE_USERS_KEY);
     let users: UserAccount[] = raw ? JSON.parse(raw) : [];
 
+    // Filter out any obsolete test or mock pending accounts
+    users = users.filter((u) => {
+      if (u.id === 'user-pending-andi-1') return false;
+      if (u.id.startsWith('user-demo-')) return false;
+      if (u.nama && (u.nama.includes('Andi Saputra') || u.nama.includes('Test Pegawai'))) return false;
+      return true;
+    });
+
     // Ensure all existing user records have username and statusPersetujuan
     users = users.map((u) => ({
       ...u,
@@ -100,15 +97,17 @@ export const getStoredUsers = (): UserAccount[] => {
       users[adminIndex].statusPersetujuan = 'DISETUJUI';
       users[adminIndex].isVerified = true;
     } else {
-      users = [DEFAULT_USERS[0], ...users.filter(u => u.id !== 'user-admin-pusat-utama')];
+      users.unshift(DEFAULT_USERS[0]);
     }
 
-    // Ensure default demo users for other roles also exist if list is small
-    DEFAULT_USERS.slice(1).forEach((demoUser) => {
-      if (!users.some((u) => normalizePhoneNumber(u.noHp) === normalizePhoneNumber(demoUser.noHp))) {
-        users.push(demoUser);
-      }
-    });
+    // If storage was completely empty, seed standard starter accounts
+    if (users.length <= 1) {
+      DEFAULT_USERS.slice(1).forEach((demoUser) => {
+        if (!users.some((u) => normalizePhoneNumber(u.noHp) === normalizePhoneNumber(demoUser.noHp))) {
+          users.push(demoUser);
+        }
+      });
+    }
 
     localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
     return users;

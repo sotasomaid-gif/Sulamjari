@@ -53,6 +53,8 @@ import {
 import {
   getStoredSheetsConfig,
   saveStoredSheetsConfig,
+  fetchSheetsConfigFromServer,
+  fetchAllFromSheets,
   pushSingleRecordToSheets,
   pushAllToSheets,
   syncUsersToSpreadsheet,
@@ -103,6 +105,30 @@ export default function App() {
 
   // Google Spreadsheet & Apps Script Config State
   const [sheetsConfig, setSheetsConfig] = useState<SheetsSyncConfig>(getStoredSheetsConfig);
+
+  // Hydrate sheetsConfig from server on mount so all devices/clients share the connection URL
+  useEffect(() => {
+    fetchSheetsConfigFromServer().then((cfg) => {
+      if (cfg && cfg.webAppUrl) {
+        setSheetsConfig(cfg);
+      }
+    });
+
+    const handleSheetsConfigUpdated = (e: any) => {
+      if (e.detail) {
+        setSheetsConfig(e.detail);
+      } else {
+        setSheetsConfig(getStoredSheetsConfig());
+      }
+    };
+
+    window.addEventListener('sulamjari-sheets-config-updated', handleSheetsConfigUpdated);
+    window.addEventListener('storage', handleSheetsConfigUpdated);
+    return () => {
+      window.removeEventListener('sulamjari-sheets-config-updated', handleSheetsConfigUpdated);
+      window.removeEventListener('storage', handleSheetsConfigUpdated);
+    };
+  }, []);
 
   // Daily Production Target (in Kg)
   const [targetProduksiKg, setTargetProduksiKg] = useState<number>(() => {
@@ -392,6 +418,49 @@ export default function App() {
       window.dispatchEvent(new CustomEvent('sulamjari-users-updated'));
     }
   };
+
+  // Real-time automatic background sync from Google Sheets (No manual "Tarik Data" required)
+  useEffect(() => {
+    if (
+      !sheetsConfig.webAppUrl ||
+      !sheetsConfig.webAppUrl.trim().startsWith('http') ||
+      !sheetsConfig.autoSyncEnabled
+    ) {
+      return;
+    }
+
+    let isSyncing = false;
+    const runAutoSheetsPull = async () => {
+      if (isSyncing) return;
+      isSyncing = true;
+      try {
+        const res = await fetchAllFromSheets(sheetsConfig.webAppUrl);
+        if (res.success && res.data) {
+          handleDataPulledFromSheets(res.data);
+          setSheetsConfig((prev) => ({
+            ...prev,
+            lastSyncStatus: 'success',
+            lastSyncTime: new Date().toISOString(),
+            lastSyncMessage: 'Realtime sync otomatis aktif',
+          }));
+        }
+      } catch (err) {
+        // quiet background fail
+      } finally {
+        isSyncing = false;
+      }
+    };
+
+    // Initial pull after 2 seconds
+    const timer = setTimeout(runAutoSheetsPull, 2000);
+    // Recurring auto-sync every 8 seconds
+    const interval = setInterval(runAutoSheetsPull, 8000);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, [sheetsConfig.webAppUrl, sheetsConfig.autoSyncEnabled]);
 
   // -------------------------------------------------------------
   // MUTASI STOK HANDLERS (AUTOMATIC STOCK ADJUSTMENT)

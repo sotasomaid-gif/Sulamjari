@@ -738,9 +738,41 @@ export const getStoredSheetsConfig = (): SheetsSyncConfig => {
 export const saveStoredSheetsConfig = (config: SheetsSyncConfig) => {
   try {
     localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(config));
+    window.dispatchEvent(new CustomEvent('sulamjari-sheets-config-updated', { detail: config }));
+    // Asynchronously save to server so all devices share this configuration
+    fetch('/api/sheets-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    }).catch((err) => {
+      console.warn('Failed to persist sheets config to server:', err);
+    });
   } catch (e) {
     console.error('Failed to save sheets config:', e);
   }
+};
+
+export const fetchSheetsConfigFromServer = async (): Promise<SheetsSyncConfig> => {
+  try {
+    const res = await fetch('/api/sheets-config');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.config) {
+        const local = getStoredSheetsConfig();
+        const merged: SheetsSyncConfig = {
+          ...local,
+          ...data.config,
+          webAppUrl: data.config.webAppUrl || local.webAppUrl,
+          spreadsheetUrl: data.config.spreadsheetUrl || local.spreadsheetUrl,
+        };
+        localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(merged));
+        return merged;
+      }
+    }
+  } catch (err) {
+    console.warn('fetchSheetsConfigFromServer fallback to localStorage:', err);
+  }
+  return getStoredSheetsConfig();
 };
 
 export const getStoredSyncLogs = (): SyncLogEntry[] => {

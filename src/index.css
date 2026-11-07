@@ -13,10 +13,47 @@
 }
 
 @media print {
-  body {
-    background-color: #ffffff !important;
+  @page {
+    margin: 12mm 15mm;
+    size: auto;
   }
-  header, footer, nav {
+
+  html, body {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  header, footer, nav, .print\:hidden {
     display: none !important;
   }
+
+  /* Prevent modal from locking height or hiding pages in print */
+  .fixed {
+    position: static !important;
+    overflow: visible !important;
+  }
+
+  .overflow-y-auto, .overflow-hidden {
+    overflow: visible !important;
+  }
+
+  #printable-report {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  table {
+    width: 100% !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
 }
+

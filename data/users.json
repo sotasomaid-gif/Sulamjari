@@ -11,17 +11,6 @@
     "createdAt": "2026-01-01"
   },
   {
-    "id": "user-pending-andi-1",
-    "nama": "Andi Saputra (Mandor Produksi)",
-    "username": "081298765432",
-    "noHp": "081298765432",
-    "password": "password123",
-    "role": "kepala_pabrik",
-    "statusPersetujuan": "MENUNGGU_PERSETUJUAN",
-    "isVerified": false,
-    "createdAt": "2026-03-01"
-  },
-  {
     "id": "user-admin-pabrik-1",
     "nama": "Siti Rahma (Kasir & Staf)",
     "username": "081233445566",
@@ -42,27 +31,5 @@
     "statusPersetujuan": "DISETUJUI",
     "isVerified": true,
     "createdAt": "2026-01-10"
-  },
-  {
-    "id": "user-1793964661425-sohq",
-    "nama": "Test Pegawai Delapan",
-    "username": "8123456789",
-    "noHp": "8123456789",
-    "password": "password123",
-    "role": "admin_pabrik",
-    "statusPersetujuan": "MENUNGGU_PERSETUJUAN",
-    "isVerified": false,
-    "createdAt": "2026-11-06"
-  },
-  {
-    "id": "user-1793964667411-e2q0",
-    "nama": "Test Pegawai Plus Enam Dua",
-    "username": "08991234567",
-    "noHp": "08991234567",
-    "password": "password123",
-    "role": "kepala_pabrik",
-    "statusPersetujuan": "MENUNGGU_PERSETUJUAN",
-    "isVerified": false,
-    "createdAt": "2026-11-06"
   }
 ]

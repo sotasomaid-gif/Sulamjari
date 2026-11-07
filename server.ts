@@ -44,17 +44,6 @@ const DEFAULT_USERS: UserAccount[] = [
     createdAt: '2026-01-01',
   },
   {
-    id: 'user-pending-andi-1',
-    nama: 'Andi Saputra (Mandor Produksi)',
-    username: '081298765432',
-    noHp: '081298765432',
-    password: 'password123',
-    role: 'kepala_pabrik',
-    statusPersetujuan: 'MENUNGGU_PERSETUJUAN',
-    isVerified: false,
-    createdAt: '2026-03-01',
-  },
-  {
     id: 'user-admin-pabrik-1',
     nama: 'Siti Rahma (Kasir & Staf)',
     username: '081233445566',
@@ -108,8 +97,16 @@ function getStoredUsers(): UserAccount[] {
   try {
     if (fs.existsSync(USERS_FILE)) {
       const content = fs.readFileSync(USERS_FILE, 'utf-8');
-      const parsed: UserAccount[] = JSON.parse(content);
+      let parsed: UserAccount[] = JSON.parse(content);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        // Clean out any obsolete demo / test accounts
+        parsed = parsed.filter((u) => {
+          if (u.id === 'user-pending-andi-1') return false;
+          if (u.id.startsWith('user-demo-')) return false;
+          if (u.nama && (u.nama.includes('Andi Saputra') || u.nama.includes('Test Pegawai'))) return false;
+          return true;
+        });
+
         // Guarantee Admin Pusat is always correctly set
         const adminIndex = parsed.findIndex(
           (u) => normalizePhone(u.noHp) === '0895321898759'
@@ -390,41 +387,7 @@ async function startServer() {
     return res.json({ success: true, message: `Akun ${target.nama} berhasil dihapus.` });
   });
 
-  // 6. POST /api/users/seed-demo - Quick Seed a pending applicant for instant testing
-  app.post('/api/users/seed-demo', (_req: Request, res: Response) => {
-    const users = getStoredUsers();
-    const randomDigits = Math.floor(10000000 + Math.random() * 90000000);
-    const demoCandidates = [
-      { nama: 'Dedi Kurniawan', role: 'admin_pabrik' as const, phone: `0812${randomDigits}` },
-      { nama: 'Slamet Riyadi', role: 'kepala_pabrik' as const, phone: `0813${randomDigits}` },
-      { nama: 'Lestari Handayani', role: 'admin_pabrik' as const, phone: `0857${randomDigits}` },
-    ];
-    const picked = demoCandidates[Math.floor(Math.random() * demoCandidates.length)];
-
-    const newUser: UserAccount = {
-      id: `user-demo-${Date.now()}`,
-      nama: picked.nama,
-      username: picked.phone,
-      noHp: picked.phone,
-      password: 'password123',
-      role: picked.role,
-      statusPersetujuan: 'MENUNGGU_PERSETUJUAN',
-      isVerified: false,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-
-    const updated = [...users, newUser];
-    saveStoredUsers(updated);
-    syncAllUsersToGoogleSheets(updated);
-
-    return res.status(201).json({
-      success: true,
-      message: `Contoh pendaftar (${newUser.nama}) berhasil ditambahkan dan menunggu persetujuan.`,
-      user: newUser,
-    });
-  });
-
-  // 7. GET & POST /api/sheets-config - Shared Google Sheets configuration
+  // 6. GET & POST /api/sheets-config - Shared Google Sheets configuration
   app.get('/api/sheets-config', (_req: Request, res: Response) => {
     res.json({ success: true, config: getSheetsConfig() });
   });

@@ -1064,10 +1064,10 @@ export const ModalPrint: React.FC<ModalPrintProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-2xs overflow-y-auto print:p-0 print:bg-white">
-      <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl border border-slate-200 overflow-hidden my-8 print:border-none print:shadow-none print:my-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-2xs overflow-y-auto print:p-0 print:bg-white print:static print:overflow-visible">
+      <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl border border-slate-200 flex flex-col max-h-[92vh] my-auto print:max-h-none print:border-none print:shadow-none print:my-0 print:w-full print:block overflow-hidden">
         {/* Modal Controls (Hidden in Print) */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50 print:hidden">
+        <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-slate-200 bg-slate-50 print:hidden shrink-0">
           <div className="flex items-center gap-2">
             <Printer className="w-5 h-5 text-slate-700" />
             <h3 className="text-base font-bold text-slate-900">
@@ -1077,22 +1077,23 @@ export const ModalPrint: React.FC<ModalPrintProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handleDownloadPDF}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-xs cursor-pointer"
               title="Unduh berkas PDF resmi untuk dikirimkan ke pemilik pabrik"
             >
               <FileDown className="w-4 h-4" />
-              <span>Unduh PDF (.pdf)</span>
+              <span className="hidden sm:inline">Unduh PDF (.pdf)</span>
+              <span className="sm:hidden">PDF</span>
             </button>
             <button
               onClick={handleTriggerPrint}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 rounded-lg transition-colors border border-slate-300 shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 rounded-lg transition-colors border border-slate-300 shadow-2xs cursor-pointer"
             >
               <Printer className="w-4 h-4 text-slate-600" />
-              <span>Cetak Printer</span>
+              <span>Cetak</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1100,7 +1101,7 @@ export const ModalPrint: React.FC<ModalPrintProps> = ({
         </div>
 
         {/* Printable Document Body */}
-        <div className="p-8 space-y-6 text-slate-900 font-sans" id="printable-report">
+        <div className="p-4 sm:p-8 space-y-6 text-slate-900 font-sans overflow-y-auto flex-1 print:overflow-visible print:p-0" id="printable-report">
           {/* Header Surat Resmi Pabrik */}
           <div className="border-b-2 border-slate-900 pb-4 flex items-start justify-between">
             <div>
@@ -1143,70 +1144,72 @@ export const ModalPrint: React.FC<ModalPrintProps> = ({
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
               1. Ikhtisar Laba Rugi Operasional (P&amp;L)
             </h4>
-            <table className="w-full text-xs border border-slate-200 divide-y divide-slate-200">
-              <thead className="bg-slate-100 font-bold text-slate-700">
-                <tr>
-                  <th className="px-3 py-2 text-left">Komponen Keuangan</th>
-                  <th className="px-3 py-2 text-right">Nilai (Rp)</th>
-                  <th className="px-3 py-2 text-left">Keterangan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                <tr>
-                  <td className="px-3 py-2 font-bold text-slate-900">
-                    Total Omset Penjualan Mie
-                  </td>
-                  <td className="px-3 py-2 text-right font-black text-emerald-700">
-                    {formatRupiah(printData.totalOmset)}
-                  </td>
-                  <td className="px-3 py-2 text-slate-600">
-                    {formatNumber(printData.totalKgMie)} Kg ({printData.penjualanCount} transaksi)
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-2 text-slate-800">
-                    Beban Pokok Produksi (HPP Bahan Terpakai)
-                  </td>
-                  <td className="px-3 py-2 text-right font-bold text-amber-700">
-                    ({formatRupiah(printData.totalBiayaBahan)})
-                  </td>
-                  <td className="px-3 py-2 text-slate-600">
-                    Tepung, telur, kansui, minyak &amp; plastik
-                  </td>
-                </tr>
-                <tr className="bg-slate-50 font-bold">
-                  <td className="px-3 py-2 uppercase">LABA KOTOR (GROSS PROFIT)</td>
-                  <td className="px-3 py-2 text-right font-black text-slate-900">
-                    {formatRupiah(printData.labaKotor)}
-                  </td>
-                  <td className="px-3 py-2 text-emerald-600 font-bold">
-                    Margin: {printData.marginLabaKotor.toFixed(1)}%
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-2 text-slate-800">
-                    Beban Operasional Pabrik
-                  </td>
-                  <td className="px-3 py-2 text-right font-bold text-rose-700">
-                    ({formatRupiah(printData.totalBiayaOps)})
-                  </td>
-                  <td className="px-3 py-2 text-slate-600">
-                    Listrik, gas LPG, upah harian &amp; transport
-                  </td>
-                </tr>
-                <tr className="bg-emerald-50/50 font-black text-sm border-t-2 border-slate-400">
-                  <td className="px-3 py-2.5 uppercase text-slate-900">
-                    ESTIMASI LABA BERSIH (NET PROFIT)
-                  </td>
-                  <td className="px-3 py-2.5 text-right text-emerald-700">
-                    {formatRupiah(printData.estimasiLabaBersih)}
-                  </td>
-                  <td className="px-3 py-2.5 text-xs text-slate-700 font-semibold">
-                    Net Margin: {printData.marginLabaBersih.toFixed(1)}%
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full text-xs divide-y divide-slate-200">
+                <thead className="bg-slate-100 font-bold text-slate-700">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Komponen Keuangan</th>
+                    <th className="px-3 py-2 text-right">Nilai (Rp)</th>
+                    <th className="px-3 py-2 text-left">Keterangan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  <tr>
+                    <td className="px-3 py-2 font-bold text-slate-900">
+                      Total Omset Penjualan Mie
+                    </td>
+                    <td className="px-3 py-2 text-right font-black text-emerald-700">
+                      {formatRupiah(printData.totalOmset)}
+                    </td>
+                    <td className="px-3 py-2 text-slate-600">
+                      {formatNumber(printData.totalKgMie)} Kg ({printData.penjualanCount} transaksi)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 text-slate-800">
+                      Beban Pokok Produksi (HPP Bahan Terpakai)
+                    </td>
+                    <td className="px-3 py-2 text-right font-bold text-amber-700">
+                      ({formatRupiah(printData.totalBiayaBahan)})
+                    </td>
+                    <td className="px-3 py-2 text-slate-600">
+                      Tepung, telur, kansui, minyak &amp; plastik
+                    </td>
+                  </tr>
+                  <tr className="bg-slate-50 font-bold">
+                    <td className="px-3 py-2 uppercase">LABA KOTOR (GROSS PROFIT)</td>
+                    <td className="px-3 py-2 text-right font-black text-slate-900">
+                      {formatRupiah(printData.labaKotor)}
+                    </td>
+                    <td className="px-3 py-2 text-emerald-600 font-bold">
+                      Margin: {printData.marginLabaKotor.toFixed(1)}%
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 text-slate-800">
+                      Beban Operasional Pabrik
+                    </td>
+                    <td className="px-3 py-2 text-right font-bold text-rose-700">
+                      ({formatRupiah(printData.totalBiayaOps)})
+                    </td>
+                    <td className="px-3 py-2 text-slate-600">
+                      Listrik, gas LPG, upah harian &amp; transport
+                    </td>
+                  </tr>
+                  <tr className="bg-emerald-50/50 font-black text-sm border-t-2 border-slate-400">
+                    <td className="px-3 py-2.5 uppercase text-slate-900">
+                      ESTIMASI LABA BERSIH (NET PROFIT)
+                    </td>
+                    <td className="px-3 py-2.5 text-right text-emerald-700">
+                      {formatRupiah(printData.estimasiLabaBersih)}
+                    </td>
+                    <td className="px-3 py-2.5 text-xs text-slate-700 font-semibold">
+                      Net Margin: {printData.marginLabaBersih.toFixed(1)}%
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Operational Breakdown */}

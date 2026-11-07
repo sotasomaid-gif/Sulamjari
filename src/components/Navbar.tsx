@@ -138,28 +138,28 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Top Bar: Brand, Role Switcher & Quick Action Buttons */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-3">
-          {/* Logo & Brand Identity */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-rose-700 flex items-center justify-center text-white shadow-md shadow-red-500/20 ring-2 ring-red-100">
+          {/* Logo & Brand Identity (Full & Never Truncated) */}
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 min-w-max">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-rose-700 flex items-center justify-center text-white shadow-md shadow-red-500/20 ring-2 ring-red-100 shrink-0">
               <Wheat className="w-6 h-6 stroke-[2.2]" />
             </div>
-            <div>
+            <div className="shrink-0">
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-lg sm:text-xl tracking-tight text-slate-900">
+                <span className="font-extrabold text-base sm:text-xl tracking-tight text-slate-900 whitespace-nowrap">
                   PABRIK MIE <span className="text-red-600">SULAMJARI</span>
                 </span>
-                <span className="hidden md:inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
+                <span className="hidden lg:inline-flex items-center px-2 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full whitespace-nowrap">
                   Produksi Aktif
                 </span>
               </div>
-              <p className="text-xs text-slate-700 font-medium hidden sm:block">
+              <p className="text-xs text-slate-700 font-medium hidden sm:block whitespace-nowrap">
                 Manajemen Keuangan, Stok Bahan &amp; Penjualan Harian
               </p>
             </div>
           </div>
 
           {/* Center-Right: Quick Action Buttons & Role Badge */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Active User Role Badge (Informative pill) */}
             <button
               type="button"
