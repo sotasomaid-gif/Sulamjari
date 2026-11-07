@@ -528,7 +528,8 @@ export const PengaturanHakAksesTab: React.FC<PengaturanHakAksesTabProps> = ({
                   <th className="py-2.5 px-4">Password Tersimpan</th>
                   <th className="py-2.5 px-4">Role Model</th>
                   <th className="py-2.5 px-4">Persetujuan</th>
-                  <th className="py-2.5 px-4">Verifikasi OTP</th>
+                  <th className="py-2.5 px-4">Kode OTP</th>
+                  <th className="py-2.5 px-4">Verifikasi</th>
                   <th className="py-2.5 px-4 text-center">Aksi</th>
                 </tr>
               </thead>
@@ -588,6 +589,15 @@ export const PengaturanHakAksesTab: React.FC<PengaturanHakAksesTabProps> = ({
                         }`}>
                           {user.statusPersetujuan || 'DISETUJUI'}
                         </span>
+                      </td>
+                      <td className="py-3 px-4 font-mono">
+                        {user.lastOtp ? (
+                          <span className="bg-amber-50 text-amber-900 border border-amber-300 font-black px-2 py-0.5 rounded text-[11px] tracking-wider">
+                            {user.lastOtp}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-[10px]">-</span>
+                        )}
                       </td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${

@@ -163,6 +163,7 @@ function doPost(e) {
 
     const action = payload.action || 'syncAll';
     setupDatabaseIfMissing();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
 
     if (action === 'setupDatabase' || action === 'init') {
       setupDatabase(true);
@@ -208,6 +209,68 @@ function doPost(e) {
       });
     }
 
+    if (action === 'updateUserStatus' || action === 'updateUserOtp') {
+      const u = payload.user || payload.record || {};
+      const sheet = getOrCreateSheet(ss, TABLES.USERS, SCHEMAS[TABLES.USERS]);
+      const lastRow = sheet.getLastRow();
+      let foundRow = -1;
+      
+      const cleanPhone = String(u.noHp || u.username || '').replace(/\D/g, '');
+      const userId = String(u.id || '');
+
+      if (lastRow > 1) {
+        const data = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
+        for (let i = 0; i < data.length; i++) {
+          const rowId = String(data[i][0]);
+          const rowPhone = String(data[i][4]).replace(/\D/g, '');
+          const rowUser = String(data[i][2]).replace(/\D/g, '');
+          if ((userId && rowId === userId) || (cleanPhone && (rowPhone === cleanPhone || rowUser === cleanPhone))) {
+            foundRow = i + 2;
+            break;
+          }
+        }
+      }
+
+      const otpStr = u.lastOtp ? "'" + String(u.lastOtp).replace(/^'/, '') : '';
+      const verifStr = (u.isVerified === true || u.isVerified === 'TERVERIFIKASI') ? 'TERVERIFIKASI' : 'BELUM';
+      const statusStr = u.statusPersetujuan || 'DISETUJUI';
+      const disetujuiStr = u.disetujuiOleh || 'Admin Pusat';
+
+      if (foundRow > 0) {
+        if (u.nama) sheet.getRange(foundRow, 2).setValue(u.nama);
+        if (u.password) sheet.getRange(foundRow, 4).setValue(u.password);
+        if (statusStr) sheet.getRange(foundRow, 7).setValue(statusStr);
+        sheet.getRange(foundRow, 8).setValue(verifStr);
+        if (otpStr) {
+          sheet.getRange(foundRow, 9).setNumberFormat('@').setValue(otpStr);
+        }
+        if (disetujuiStr) sheet.getRange(foundRow, 11).setValue(disetujuiStr);
+      } else {
+        const newRow = [
+          u.id || Utilities.getUuid(),
+          u.nama || '',
+          cleanPhone ? "'" + cleanPhone : '',
+          u.password || '',
+          cleanPhone ? "'" + cleanPhone : '',
+          u.role || 'admin_pabrik',
+          statusStr,
+          verifStr,
+          otpStr,
+          u.createdAt || new Date().toISOString().split('T')[0],
+          disetujuiStr
+        ];
+        sheet.appendRow(newRow);
+        sheet.getRange(sheet.getLastRow(), 9).setNumberFormat('@');
+      }
+
+      appendLogEntry('UPDATE_STATUS_USER', payload.actor || 'Admin', 'SUKSES', 'Status user ' + (u.nama || cleanPhone) + ' diperbarui: ' + statusStr + ' / ' + verifStr + ' / OTP: ' + (u.lastOtp || '-'));
+      return jsonResponse({
+        success: true,
+        message: 'Status dan OTP user berhasil diperbarui di Google Spreadsheet!',
+        timestamp: new Date().toISOString()
+      });
+    }
+
     if (action === 'syncUsers') {
       const users = payload.users || [];
       const sheet = getOrCreateSheet(ss, TABLES.USERS, SCHEMAS[TABLES.USERS]);
@@ -216,19 +279,21 @@ function doPost(e) {
         const rows = users.map(u => [
           u.id || '',
           u.nama || '',
-          u.username ? "'" + u.username : (u.noHp ? "'" + u.noHp : ''),
+          u.username ? "'" + String(u.username).replace(/^'/, '') : (u.noHp ? "'" + String(u.noHp).replace(/^'/, '') : ''),
           u.password || '',
-          u.noHp ? "'" + u.noHp : '',
+          u.noHp ? "'" + String(u.noHp).replace(/^'/, '') : '',
           u.role || 'admin_pabrik',
           u.statusPersetujuan || 'DISETUJUI',
-          u.isVerified ? 'TERVERIFIKASI' : 'BELUM',
-          u.lastOtp || '',
+          (u.isVerified === true || u.isVerified === 'TERVERIFIKASI') ? 'TERVERIFIKASI' : 'BELUM',
+          u.lastOtp ? "'" + String(u.lastOtp).replace(/^'/, '') : '',
           u.createdAt || '',
           u.disetujuiOleh || ''
         ]);
         sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+        sheet.getRange(2, 5, rows.length, 1).setNumberFormat('@');
+        sheet.getRange(2, 9, rows.length, 1).setNumberFormat('@');
       }
-      appendLogEntry('SINKRONISASI_USER', payload.user || 'Sistem', 'SUKSES', 'Menyimpan ' + users.length + ' data akun pegawai ke Google Sheet');
+      appendLogEntry('SINKRONISASI_USER', payload.user || 'Sistem', 'SUKSES', 'Menyimpan ' + users.length + ' data akun pegawai ke Google Sheet (termasuk OTP & Status Verifikasi)');
       return jsonResponse({
         success: true,
         message: 'Data akun pegawai berhasil disimpan ke Google Spreadsheet!',
@@ -365,17 +430,19 @@ function syncAllDataToSpreadsheet(data) {
       const rows = data.users.map(u => [
         u.id || '',
         u.nama || '',
-        u.username ? "'" + u.username : (u.noHp ? "'" + u.noHp : ''),
+        u.username ? "'" + String(u.username).replace(/^'/, '') : (u.noHp ? "'" + String(u.noHp).replace(/^'/, '') : ''),
         u.password || '',
-        u.noHp ? "'" + u.noHp : '',
+        u.noHp ? "'" + String(u.noHp).replace(/^'/, '') : '',
         u.role || 'admin_pabrik',
         u.statusPersetujuan || 'DISETUJUI',
-        u.isVerified ? 'TERVERIFIKASI' : 'BELUM',
-        u.lastOtp || '',
+        (u.isVerified === true || u.isVerified === 'TERVERIFIKASI') ? 'TERVERIFIKASI' : 'BELUM',
+        u.lastOtp ? "'" + String(u.lastOtp).replace(/^'/, '') : '',
         u.createdAt || '',
         u.disetujuiOleh || ''
       ]);
       sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+      sheet.getRange(2, 5, rows.length, 1).setNumberFormat('@');
+      sheet.getRange(2, 9, rows.length, 1).setNumberFormat('@');
     }
   }
 
@@ -462,19 +529,53 @@ function insertSingleRecord(tableName, record) {
       record.buktiNota || ''
     ];
   } else if (tableName === TABLES.USERS) {
+    const lastRow = targetSheet.getLastRow();
+    const cleanPhone = String(record.noHp || record.username || '').replace(/\D/g, '');
+    const userId = String(record.id || '');
+    let foundRow = -1;
+    if (lastRow > 1) {
+      const data = targetSheet.getRange(2, 1, lastRow - 1, 5).getValues();
+      for (let i = 0; i < data.length; i++) {
+        const rowId = String(data[i][0]);
+        const rowPhone = String(data[i][4]).replace(/\D/g, '');
+        if ((userId && rowId === userId) || (cleanPhone && rowPhone === cleanPhone)) {
+          foundRow = i + 2;
+          break;
+        }
+      }
+    }
+
+    const otpStr = record.lastOtp ? "'" + String(record.lastOtp).replace(/^'/, '') : '';
+    const verifStr = (record.isVerified === true || record.isVerified === 'TERVERIFIKASI') ? 'TERVERIFIKASI' : 'BELUM';
+    const statusStr = record.statusPersetujuan || 'DISETUJUI';
+    const disetujuiStr = record.disetujuiOleh || 'Admin Pusat';
+
+    if (foundRow > 0) {
+      if (record.nama) targetSheet.getRange(foundRow, 2).setValue(record.nama);
+      if (record.password) targetSheet.getRange(foundRow, 4).setValue(record.password);
+      targetSheet.getRange(foundRow, 7).setValue(statusStr);
+      targetSheet.getRange(foundRow, 8).setValue(verifStr);
+      if (otpStr) targetSheet.getRange(foundRow, 9).setNumberFormat('@').setValue(otpStr);
+      if (disetujuiStr) targetSheet.getRange(foundRow, 11).setValue(disetujuiStr);
+      return;
+    }
+
     rowValues = [
       record.id || Utilities.getUuid(),
       record.nama || '',
-      record.username ? "'" + record.username : (record.noHp ? "'" + record.noHp : ''),
+      cleanPhone ? "'" + cleanPhone : '',
       record.password || '',
-      record.noHp ? "'" + record.noHp : '',
+      cleanPhone ? "'" + cleanPhone : '',
       record.role || 'admin_pabrik',
-      record.statusPersetujuan || 'MENUNGGU_PERSETUJUAN',
-      record.isVerified ? 'TERVERIFIKASI' : 'BELUM',
-      record.lastOtp || '',
+      statusStr,
+      verifStr,
+      otpStr,
       record.createdAt || new Date().toISOString().split('T')[0],
-      record.disetujuiOleh || ''
+      disetujuiStr
     ];
+    targetSheet.appendRow(rowValues);
+    targetSheet.getRange(targetSheet.getLastRow(), 9).setNumberFormat('@');
+    return;
   } else {
     rowValues = Object.keys(record).map(k => record[k]);
   }
@@ -1073,6 +1174,58 @@ export const TABLES = {
 };
 
 /**
+ * Memperbarui Status Persetujuan, Status Verifikasi (OTP), dan Kode OTP ke Google Spreadsheet secara langsung
+ */
+export const updateUserStatusInSheets = async (
+  url: string,
+  user: UserAccount,
+  actor?: string
+): Promise<boolean> => {
+  if (!url || !url.trim().startsWith('http')) return false;
+
+  try {
+    const payload = {
+      action: 'updateUserStatus',
+      actor: actor || 'Admin Pusat',
+      user: {
+        id: user.id,
+        nama: user.nama,
+        username: user.username,
+        password: user.password,
+        noHp: user.noHp,
+        role: user.role,
+        statusPersetujuan: user.statusPersetujuan || 'DISETUJUI',
+        isVerified: user.isVerified ? 'TERVERIFIKASI' : 'BELUM',
+        lastOtp: user.lastOtp || '',
+        createdAt: user.createdAt || new Date().toISOString().split('T')[0],
+        disetujuiOleh: user.disetujuiOleh || 'Admin Pusat',
+      },
+    };
+
+    const res = await fetch(url.trim(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      appendSyncLog({
+        type: 'auto',
+        status: 'success',
+        message: `Database Google Sheet: Status & OTP ${user.nama} berhasil dicatat (OTP: ${user.lastOtp || '-'}, Status: ${user.isVerified ? 'TERVERIFIKASI' : 'BELUM'})`,
+      });
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.warn('updateUserStatusInSheets failed:', err);
+    return false;
+  }
+};
+
+/**
  * Sinkronisasi Seluruh Daftar Pengguna (AkunPengguna) ke Google Spreadsheet
  */
 export const syncUsersToSpreadsheet = async (
@@ -1083,29 +1236,44 @@ export const syncUsersToSpreadsheet = async (
   if (!url || !url.trim().startsWith('http')) return false;
 
   try {
-    const body = {
+    // 1. Kirim action syncUsers
+    const body1 = {
       action: 'syncUsers',
       users,
       user: userName || 'Admin Pusat',
     };
 
-    const res = await fetch(url.trim(), {
+    await fetch(url.trim(), {
       method: 'POST',
       headers: {
         'Content-Type': 'text/plain;charset=utf-8',
       },
-      body: JSON.stringify(body),
-    });
+      body: JSON.stringify(body1),
+    }).catch(() => null);
 
-    if (res.ok) {
-      appendSyncLog({
-        type: 'auto',
-        status: 'success',
-        message: `Database: ${users.length} data akun pegawai berhasil disimpan ke sheet AkunPengguna`,
-      });
-      return true;
-    }
-    return false;
+    // 2. Kirim juga action syncAll fallback agar kompatibel penuh dengan semua versi Apps Script
+    const body2 = {
+      action: 'syncAll',
+      user: userName || 'Admin Pusat',
+      data: {
+        users,
+      },
+    };
+
+    const res2 = await fetch(url.trim(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify(body2),
+    }).catch(() => null);
+
+    appendSyncLog({
+      type: 'auto',
+      status: 'success',
+      message: `Database: ${users.length} data akun pegawai berhasil disimpan ke sheet AkunPengguna (OTP & Verifikasi tercatat)`,
+    });
+    return true;
   } catch (err) {
     console.warn('Sync users to spreadsheet failed:', err);
     return false;
@@ -1124,9 +1292,11 @@ export const syncUserRecordToSheets = async (
   if (!config.webAppUrl || !config.webAppUrl.trim().startsWith('http')) return false;
 
   try {
-    // Push individual record
+    // 1. Direct targeted update for user status & OTP
+    await updateUserStatusInSheets(config.webAppUrl, user, actorName || 'Pendaftaran Pegawai');
+    // 2. Also insert record
     await pushSingleRecordToSheets(config.webAppUrl, TABLES.USERS, user, actorName || 'Pendaftaran Pegawai');
-    // If full users list is provided, also sync full sheet for guarantee
+    // 3. If full users list is provided, also sync full sheet for guarantee
     if (allUsers && allUsers.length > 0) {
       await syncUsersToSpreadsheet(config.webAppUrl, allUsers, actorName || 'Pendaftaran Pegawai');
     }

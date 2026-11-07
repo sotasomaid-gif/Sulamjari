@@ -35,6 +35,7 @@ import {
   toInternationalPhone,
   fetchUsersFromServer,
   registerUserOnServer,
+  verifyUserOtpOnServer,
 } from '../utils/auth';
 import { WhatsAppChatModal } from './WhatsAppChatModal';
 import { syncUserRecordToSheets } from '../utils/googleSheetsSync';
@@ -303,7 +304,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   // --- HANDLER: VERIFY OTP ---
-  const handleVerifyOtpSubmit = (e?: React.FormEvent, overrideCode?: string) => {
+  const handleVerifyOtpSubmit = async (e?: React.FormEvent, overrideCode?: string) => {
     if (e) e.preventDefault();
     setOtpError(null);
 
@@ -322,25 +323,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     const user = users[userIndex];
 
-    // Check OTP expiration
-    if (user.otpExpiresAt && Date.now() > user.otpExpiresAt) {
-      setOtpError('Kode OTP telah kadaluarsa. Silakan klik "Kirim Ulang OTP".');
+    const result = await verifyUserOtpOnServer(user.id, codeToVerify, user.noHp);
+    if (!result.success) {
+      setOtpError(result.message);
       return;
     }
 
-    // Verify OTP match
-    if (user.lastOtp !== codeToVerify) {
-      setOtpError('Kode OTP tidak cocok. Periksa pesan WhatsApp Anda.');
-      return;
-    }
+    const activatedUser = result.user || { ...user, isVerified: true, lastOtp: codeToVerify };
+    // Synchronize to Google Sheets
+    syncUserRecordToSheets(activatedUser, getStoredUsers(), 'Aktivasi OTP Sukses');
 
-    // Activate and verify user
-    users[userIndex].isVerified = true;
-    users[userIndex].lastOtp = undefined;
-    users[userIndex].otpExpiresAt = undefined;
-    saveStoredUsers(users);
-
-    const activatedUser = users[userIndex];
     onLoginSuccess(activatedUser);
     showToast(
       `🎉 Pendaftaran Berhasil & Akun Aktif! Selamat bergabung sebagai ${

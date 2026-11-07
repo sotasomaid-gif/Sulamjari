@@ -165,7 +165,33 @@ async function syncUserToGoogleSheets(user: UserAccount, actor: string = 'Server
   const cfg = getSheetsConfig();
   if (!cfg.webAppUrl || !cfg.webAppUrl.startsWith('http')) return;
 
+  const userPayload = {
+    id: user.id,
+    nama: user.nama,
+    username: user.username,
+    password: user.password,
+    noHp: user.noHp,
+    role: user.role,
+    statusPersetujuan: user.statusPersetujuan || 'DISETUJUI',
+    isVerified: user.isVerified ? 'TERVERIFIKASI' : 'BELUM',
+    lastOtp: user.lastOtp || '',
+    createdAt: user.createdAt || new Date().toISOString().split('T')[0],
+    disetujuiOleh: user.disetujuiOleh || '',
+  };
+
   try {
+    // 1. Direct targeted update for user status and OTP
+    await fetch(cfg.webAppUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'updateUserStatus',
+        actor,
+        user: userPayload,
+      }),
+    }).catch(() => null);
+
+    // 2. Also send insertRecord for initial insert compatibility
     await fetch(cfg.webAppUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -173,21 +199,9 @@ async function syncUserToGoogleSheets(user: UserAccount, actor: string = 'Server
         action: 'insertRecord',
         table: 'AkunPengguna',
         user: actor,
-        record: {
-          id: user.id,
-          nama: user.nama,
-          username: user.username,
-          password: user.password,
-          noHp: user.noHp,
-          role: user.role,
-          statusPersetujuan: user.statusPersetujuan,
-          isVerified: user.isVerified ? 'TERVERIFIKASI' : 'BELUM',
-          lastOtp: user.lastOtp || '',
-          createdAt: user.createdAt || new Date().toISOString().split('T')[0],
-          disetujuiOleh: user.disetujuiOleh || '',
-        },
+        record: userPayload,
       }),
-    });
+    }).catch(() => null);
   } catch (err) {
     console.warn('Background sync to Google Sheets failed:', err);
   }
@@ -198,6 +212,7 @@ async function syncAllUsersToGoogleSheets(users: UserAccount[]) {
   if (!cfg.webAppUrl || !cfg.webAppUrl.startsWith('http')) return;
 
   try {
+    // 1. Send syncUsers
     await fetch(cfg.webAppUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -206,7 +221,18 @@ async function syncAllUsersToGoogleSheets(users: UserAccount[]) {
         users,
         user: 'Admin Pusat Server',
       }),
-    });
+    }).catch(() => null);
+
+    // 2. Send syncAll with data.users as resilient fallback
+    await fetch(cfg.webAppUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'syncAll',
+        user: 'Admin Pusat Server',
+        data: { users },
+      }),
+    }).catch(() => null);
   } catch (err) {
     console.warn('Background sync all users to Google Sheets failed:', err);
   }
@@ -342,6 +368,52 @@ async function startServer() {
         waWebUrl,
         waUniversalUrl,
       },
+    });
+  });
+
+  // 3b. POST /api/users/verify-otp - Verify user OTP and persist verification status
+  app.post('/api/users/verify-otp', (req: Request, res: Response) => {
+    const { userId, noHp, otpCode } = req.body;
+    const cleanPhone = normalizePhone(noHp || '');
+    const cleanCode = String(otpCode || '').trim();
+
+    if (!cleanCode) {
+      return res.status(400).json({ success: false, message: 'Kode OTP wajib diisi.' });
+    }
+
+    const users = getStoredUsers();
+    const index = users.findIndex(
+      (u) => (userId && u.id === userId) || (cleanPhone && normalizePhone(u.noHp) === cleanPhone)
+    );
+
+    if (index === -1) {
+      return res.status(404).json({ success: false, message: 'Data akun tidak ditemukan.' });
+    }
+
+    const targetUser = users[index];
+
+    // Check expiration if timestamp exists
+    if (targetUser.otpExpiresAt && Date.now() > targetUser.otpExpiresAt) {
+      return res.status(400).json({ success: false, message: 'Kode OTP telah kadaluarsa. Silakan minta kirim ulang OTP.' });
+    }
+
+    // Validate OTP code
+    if (!targetUser.lastOtp || targetUser.lastOtp !== cleanCode) {
+      return res.status(400).json({ success: false, message: 'Kode OTP tidak cocok. Periksa pesan WhatsApp Anda.' });
+    }
+
+    // Mark as verified, keep lastOtp recorded
+    targetUser.isVerified = true;
+    saveStoredUsers(users);
+
+    // Sync to Google Spreadsheet immediately (both targeted update and full sheet)
+    syncUserToGoogleSheets(targetUser, 'Verifikasi OTP Selesai');
+    syncAllUsersToGoogleSheets(users);
+
+    return res.json({
+      success: true,
+      message: 'Verifikasi akun berhasil! Status akun Anda sekarang aktif dan terverifikasi.',
+      user: targetUser,
     });
   });
 

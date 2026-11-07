@@ -58,6 +58,7 @@ import {
   pushSingleRecordToSheets,
   pushAllToSheets,
   syncUsersToSpreadsheet,
+  updateUserStatusInSheets,
   TABLES,
   SheetsSyncConfig,
 } from './utils/googleSheetsSync';
@@ -237,6 +238,9 @@ export default function App() {
 
       // Automatically sync updated user database to Google Spreadsheet
       if (sheetsConfig.webAppUrl) {
+        if (res.user) {
+          updateUserStatusInSheets(sheetsConfig.webAppUrl, res.user, adminName);
+        }
         syncUsersToSpreadsheet(sheetsConfig.webAppUrl, freshUsers, adminName);
       }
 

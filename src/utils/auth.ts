@@ -424,6 +424,65 @@ export const approveUserOnServer = async (
   return approveUserAndGenerateOtp(userId, adminName);
 };
 
+export const verifyUserOtpOnServer = async (
+  userId: string,
+  otpCode: string,
+  noHp?: string
+): Promise<{ success: boolean; message: string; user?: UserAccount }> => {
+  const cleanCode = (otpCode || '').trim();
+  try {
+    const res = await fetch('/api/users/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, noHp, otpCode: cleanCode }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.user) {
+        const current = getStoredUsers();
+        const idx = current.findIndex((u) => u.id === data.user.id);
+        if (idx >= 0) {
+          current[idx] = data.user;
+          saveStoredUsers(current);
+        } else {
+          saveStoredUsers([...current, data.user]);
+        }
+        window.dispatchEvent(new CustomEvent('sulamjari-users-updated', { detail: data.user }));
+        return data;
+      }
+    } else {
+      const errData = await res.json().catch(() => null);
+      if (errData?.message) {
+        return { success: false, message: errData.message };
+      }
+    }
+  } catch (err) {
+    console.warn('verifyUserOtpOnServer fallback to local:', err);
+  }
+
+  // Local storage fallback for static hosting
+  const users = getStoredUsers();
+  const index = users.findIndex((u) => u.id === userId);
+  if (index === -1) {
+    return { success: false, message: 'Data akun tidak ditemukan.' };
+  }
+
+  const user = users[index];
+  if (user.otpExpiresAt && Date.now() > user.otpExpiresAt) {
+    return { success: false, message: 'Kode OTP telah kadaluarsa. Silakan minta kirim ulang OTP.' };
+  }
+
+  if (user.lastOtp !== cleanCode) {
+    return { success: false, message: 'Kode OTP tidak cocok. Periksa pesan WhatsApp Anda.' };
+  }
+
+  user.isVerified = true;
+  saveStoredUsers(users);
+  window.dispatchEvent(new CustomEvent('sulamjari-users-updated', { detail: user }));
+  return { success: true, message: 'Verifikasi akun berhasil!', user };
+};
+
 export const rejectUserOnServer = async (
   userId: string,
   adminName: string = 'Admin Pusat'
