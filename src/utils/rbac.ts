@@ -314,7 +314,48 @@ export const loadStoredPermissions = (): SystemPermissions => {
 };
 
 export const saveStoredPermissions = (perms: SystemPermissions) => {
-  localStorage.setItem(STORAGE_KEY_PERMISSIONS, JSON.stringify(perms));
+  try {
+    localStorage.setItem(STORAGE_KEY_PERMISSIONS, JSON.stringify(perms));
+    window.dispatchEvent(new CustomEvent('sulamjari-permissions-updated', { detail: perms }));
+  } catch (e) {
+    console.warn('Failed to save stored permissions:', e);
+  }
+};
+
+export const fetchPermissionsFromServer = async (): Promise<SystemPermissions | null> => {
+  try {
+    const res = await fetch('/api/permissions');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.permissions) {
+        saveStoredPermissions(data.permissions);
+        return data.permissions;
+      }
+    }
+  } catch (err) {
+    console.warn('fetchPermissionsFromServer fallback to local:', err);
+  }
+  return null;
+};
+
+export const savePermissionsToServer = async (
+  perms: SystemPermissions,
+  actor?: string
+): Promise<boolean> => {
+  try {
+    const res = await fetch('/api/permissions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        permissions: perms,
+        actor: actor || 'Admin Pusat',
+      }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('savePermissionsToServer failed:', err);
+    return false;
+  }
 };
 
 export const loadActiveRole = (): UserRole => {

@@ -45,6 +45,8 @@ import {
 import {
   loadStoredPermissions,
   saveStoredPermissions,
+  fetchPermissionsFromServer,
+  savePermissionsToServer,
   loadActiveRole,
   saveActiveRole,
   DEFAULT_SYSTEM_PERMISSIONS,
@@ -57,6 +59,7 @@ import {
   pushSingleRecordToSheets,
   pushAllToSheets,
   syncUsersToSpreadsheet,
+  syncPermissionsToSheets,
   updateUserStatusInSheets,
   TABLES,
   SheetsSyncConfig,
@@ -195,7 +198,7 @@ export default function App() {
   const [activeWaMessage, setActiveWaMessage] = useState<OtpSimulationMessage | null>(null);
   const [showWaModal, setShowWaModal] = useState<boolean>(false);
 
-  // Keep users synchronized reactively from server and storage across all devices
+  // Keep users & permissions synchronized reactively from server and storage across all devices
   useEffect(() => {
     // Initial fetch from server
     fetchUsersFromServer().then((fresh) => {
@@ -204,18 +207,44 @@ export default function App() {
       }
     });
 
+    fetchPermissionsFromServer().then((freshPerms) => {
+      if (freshPerms) {
+        setSystemPermissions(freshPerms);
+      }
+    });
+
     const handleUserSync = () => {
       setUsersList(getStoredUsers());
     };
 
-    window.addEventListener('sulamjari-users-updated', handleUserSync);
-    window.addEventListener('storage', handleUserSync);
+    const handlePermissionsSync = (e: any) => {
+      if (e.detail) {
+        setSystemPermissions(e.detail);
+      } else {
+        setSystemPermissions(loadStoredPermissions());
+      }
+    };
 
-    // Real-time server polling every 4 seconds to catch new registrations from other devices
+    window.addEventListener('sulamjari-users-updated', handleUserSync);
+    window.addEventListener('sulamjari-permissions-updated', handlePermissionsSync);
+    window.addEventListener('storage', handleUserSync);
+    window.addEventListener('storage', handlePermissionsSync);
+
+    // Real-time server polling every 4 seconds to catch new registrations and permission updates from other devices
     const pollInterval = setInterval(() => {
       fetchUsersFromServer().then((fresh) => {
         if (fresh && fresh.length > 0) {
           setUsersList(fresh);
+        }
+      });
+      fetchPermissionsFromServer().then((freshPerms) => {
+        if (freshPerms) {
+          setSystemPermissions((prev) => {
+            if (JSON.stringify(prev) !== JSON.stringify(freshPerms)) {
+              return freshPerms;
+            }
+            return prev;
+          });
         }
       });
     }, 4000);
@@ -223,7 +252,9 @@ export default function App() {
     return () => {
       clearInterval(pollInterval);
       window.removeEventListener('sulamjari-users-updated', handleUserSync);
+      window.removeEventListener('sulamjari-permissions-updated', handlePermissionsSync);
       window.removeEventListener('storage', handleUserSync);
+      window.removeEventListener('storage', handlePermissionsSync);
     };
   }, []);
 
@@ -286,10 +317,19 @@ export default function App() {
     }
   };
 
-  const handleUpdatePermissions = (newPerms: SystemPermissions) => {
+  const handleUpdatePermissions = async (newPerms: SystemPermissions) => {
     setSystemPermissions(newPerms);
     saveStoredPermissions(newPerms);
-    showToast('✅ Pengaturan Hak Akses berhasil disimpan.');
+
+    // 1. Simpan ke backend server agar seluruh perangkat lain langsung tersinkron
+    savePermissionsToServer(newPerms, currentUser?.nama || 'Admin Pusat');
+
+    // 2. Simpan ke database Google Spreadsheet (Sheet PengaturanAkses)
+    if (sheetsConfig.webAppUrl) {
+      syncPermissionsToSheets(sheetsConfig.webAppUrl, newPerms, currentUser?.nama || 'Admin Pusat');
+    }
+
+    showToast('✅ Pengaturan Hak Akses berhasil disimpan ke database & diterapkan ke semua akun.');
   };
 
   const handleSwitchRole = (newRole: UserRole) => {
@@ -303,10 +343,14 @@ export default function App() {
     showToast(`🔄 Beralih peran ke: ${roleTitles[newRole]}`);
   };
 
-  const handleResetPermissions = () => {
+  const handleResetPermissions = async () => {
     setSystemPermissions(DEFAULT_SYSTEM_PERMISSIONS);
     saveStoredPermissions(DEFAULT_SYSTEM_PERMISSIONS);
-    showToast('🔄 Hak Akses berhasil dikembalikan ke standar bawaan pabrik.');
+    savePermissionsToServer(DEFAULT_SYSTEM_PERMISSIONS, currentUser?.nama || 'Admin Pusat');
+    if (sheetsConfig.webAppUrl) {
+      syncPermissionsToSheets(sheetsConfig.webAppUrl, DEFAULT_SYSTEM_PERMISSIONS, currentUser?.nama || 'Admin Pusat');
+    }
+    showToast('🔄 Hak Akses berhasil dikembalikan ke standar bawaan pabrik & disinkronkan ke database.');
   };
 
   const handleLoginSuccess = (user: UserAccount) => {
@@ -349,10 +393,29 @@ export default function App() {
     }
   }, [activeRole, activeTab]);
 
-  const currentRolePermissions = systemPermissions[activeRole];
+  const currentRolePermissions = {
+    ...DEFAULT_SYSTEM_PERMISSIONS[activeRole],
+    ...(systemPermissions?.[activeRole] || {}),
+  };
 
-  // Load Initial Data on Mount
+  // Load Initial Data on Mount (Clean state: only real data)
   useEffect(() => {
+    try {
+      const isCleaned = localStorage.getItem('sulamjari_data_cleaned_final_v1');
+      if (!isCleaned) {
+        localStorage.removeItem('sulamjari_bahan_baku_v1');
+        localStorage.removeItem('sulamjari_mutasi_stok_v1');
+        localStorage.removeItem('sulamjari_penjualan_v1');
+        localStorage.removeItem('sulamjari_operasional_v1');
+        localStorage.setItem('sulamjari_data_cleaned_final_v1', 'true');
+        setBahanList([]);
+        setMutasiList([]);
+        setPenjualanList([]);
+        setOperasionalList([]);
+        setIsLoaded(true);
+        return;
+      }
+    } catch {}
     const loaded = loadStoredData();
     setBahanList(loaded.bahan);
     setMutasiList(loaded.mutasi);

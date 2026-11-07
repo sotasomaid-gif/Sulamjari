@@ -1317,3 +1317,43 @@ export const syncUserRecordToSheets = async (
   }
 };
 
+/**
+ * Sinkronisasi Pengaturan Hak Akses (Role Permissions) ke Google Spreadsheet (Sheet PengaturanAkses)
+ */
+export const syncPermissionsToSheets = async (
+  url: string,
+  permissions: SystemPermissions,
+  userName?: string
+): Promise<boolean> => {
+  if (!url || !url.trim().startsWith('http')) return false;
+
+  try {
+    const cleanUrl = url.trim();
+    const body = {
+      action: 'syncAll',
+      user: userName || 'Admin Pusat',
+      data: {
+        permissions,
+      },
+    };
+
+    await fetch(cleanUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify(body),
+    });
+
+    appendSyncLog({
+      type: 'auto',
+      status: 'success',
+      message: 'Hak akses berhasil disimpan ke Google Spreadsheet (PengaturanAkses)',
+    });
+    return true;
+  } catch (err) {
+    console.warn('Sync permissions to spreadsheet failed:', err);
+    return false;
+  }
+};
+

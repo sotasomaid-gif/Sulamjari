@@ -10,6 +10,7 @@ const __dirname = path.dirname(__filename);
 const DATA_DIR = path.resolve(__dirname, 'data');
 const USERS_FILE = path.resolve(DATA_DIR, 'users.json');
 const SHEETS_CONFIG_FILE = path.resolve(DATA_DIR, 'sheets-config.json');
+const PERMISSIONS_FILE = path.resolve(DATA_DIR, 'permissions.json');
 
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -247,6 +248,135 @@ async function syncAllUsersToGoogleSheets(users: UserAccount[]) {
   }
 }
 
+const DEFAULT_SYSTEM_PERMISSIONS = {
+  admin_pusat: {
+    view_dashboard: true,
+    view_omset_keuangan: true,
+    lihat_keuangan: true,
+    view_harga_beli_bahan: true,
+    view_master_bahan: true,
+    view_stok_mutasi: true,
+    view_pemakaian_harian: true,
+    view_penjualan: true,
+    view_piutang: true,
+    view_operasional: true,
+    view_laba_rugi: true,
+    action_tambah_bahan: true,
+    action_hapus_bahan: true,
+    action_stok_masuk: true,
+    action_stok_keluar: true,
+    action_tambah_penjualan: true,
+    action_edit_penjualan: true,
+    action_hapus_penjualan: true,
+    action_tambah_operasional: true,
+    action_hapus_operasional: true,
+    action_atur_target: true,
+    action_cetak_laporan: true,
+    action_ekspor_backup: true,
+    action_kelola_akses: true,
+  },
+  admin_pabrik: {
+    view_dashboard: true,
+    view_omset_keuangan: true,
+    lihat_keuangan: true,
+    view_harga_beli_bahan: false,
+    view_master_bahan: true,
+    view_stok_mutasi: true,
+    view_pemakaian_harian: true,
+    view_penjualan: true,
+    view_piutang: true,
+    view_operasional: true,
+    view_laba_rugi: false,
+    action_tambah_bahan: false,
+    action_hapus_bahan: false,
+    action_stok_masuk: true,
+    action_stok_keluar: true,
+    action_tambah_penjualan: true,
+    action_edit_penjualan: true,
+    action_hapus_penjualan: false,
+    action_tambah_operasional: true,
+    action_hapus_operasional: false,
+    action_atur_target: false,
+    action_cetak_laporan: true,
+    action_ekspor_backup: true,
+    action_kelola_akses: false,
+  },
+  kepala_pabrik: {
+    view_dashboard: true,
+    view_omset_keuangan: false,
+    lihat_keuangan: false,
+    view_harga_beli_bahan: false,
+    view_master_bahan: true,
+    view_stok_mutasi: true,
+    view_pemakaian_harian: true,
+    view_penjualan: true,
+    view_piutang: false,
+    view_operasional: false,
+    view_laba_rugi: false,
+    action_tambah_bahan: true,
+    action_hapus_bahan: false,
+    action_stok_masuk: true,
+    action_stok_keluar: true,
+    action_tambah_penjualan: false,
+    action_edit_penjualan: false,
+    action_hapus_penjualan: false,
+    action_tambah_operasional: true,
+    action_hapus_operasional: false,
+    action_atur_target: true,
+    action_cetak_laporan: true,
+    action_ekspor_backup: false,
+    action_kelola_akses: false,
+  },
+};
+
+function getStoredPermissions() {
+  try {
+    if (fs.existsSync(PERMISSIONS_FILE)) {
+      const content = fs.readFileSync(PERMISSIONS_FILE, 'utf-8');
+      const parsed = JSON.parse(content);
+      if (parsed && typeof parsed === 'object') {
+        return {
+          admin_pusat: { ...DEFAULT_SYSTEM_PERMISSIONS.admin_pusat, ...(parsed.admin_pusat || {}) },
+          admin_pabrik: { ...DEFAULT_SYSTEM_PERMISSIONS.admin_pabrik, ...(parsed.admin_pabrik || {}) },
+          kepala_pabrik: { ...DEFAULT_SYSTEM_PERMISSIONS.kepala_pabrik, ...(parsed.kepala_pabrik || {}) },
+        };
+      }
+    }
+  } catch (err) {
+    console.error('Error reading permissions file:', err);
+  }
+  return DEFAULT_SYSTEM_PERMISSIONS;
+}
+
+function saveStoredPermissions(perms: any) {
+  try {
+    fs.writeFileSync(PERMISSIONS_FILE, JSON.stringify(perms, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error saving permissions file:', err);
+  }
+}
+
+async function syncPermissionsToGoogleSheets(perms: any, actor: string = 'Admin Pusat') {
+  const cfg = getSheetsConfig();
+  if (!cfg.webAppUrl || !cfg.webAppUrl.startsWith('http')) return;
+
+  try {
+    await fetch(cfg.webAppUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'syncAll',
+        user: actor,
+        data: {
+          permissions: perms,
+        },
+      }),
+    });
+  } catch (err) {
+    console.warn('Background sync permissions to Google Sheets failed:', err);
+  }
+}
+
 async function startServer() {
   const app = express();
   const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -265,6 +395,29 @@ async function startServer() {
       success: true,
       users,
       pendingCount: users.filter((u) => u.statusPersetujuan === 'MENUNGGU_PERSETUJUAN').length,
+    });
+  });
+
+  // 1b. GET & POST /api/permissions - System RBAC permissions shared across all devices & Google Sheets
+  app.get('/api/permissions', (_req: Request, res: Response) => {
+    const permissions = getStoredPermissions();
+    res.json({
+      success: true,
+      permissions,
+    });
+  });
+
+  app.post('/api/permissions', (req: Request, res: Response) => {
+    const { permissions, actor } = req.body;
+    if (!permissions || typeof permissions !== 'object') {
+      return res.status(400).json({ success: false, message: 'Data permissions tidak valid.' });
+    }
+    saveStoredPermissions(permissions);
+    syncPermissionsToGoogleSheets(permissions, actor || 'Admin Pusat');
+    return res.json({
+      success: true,
+      message: 'Hak akses berhasil disimpan dan disinkronkan ke database Google Spreadsheet!',
+      permissions,
     });
   });
 

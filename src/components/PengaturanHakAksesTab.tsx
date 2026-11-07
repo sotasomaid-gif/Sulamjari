@@ -130,11 +130,9 @@ export const PengaturanHakAksesTab: React.FC<PengaturanHakAksesTabProps> = ({
       refreshUsers();
       return;
     }
-    if (confirm('Tolak permohonan pendaftaran akun ini?')) {
-      const res = await rejectUserOnServer(userId, 'Admin Pusat');
-      refreshUsers();
-      showToast(res.message);
-    }
+    const res = await rejectUserOnServer(userId, 'Admin Pusat');
+    refreshUsers();
+    showToast(res.message);
   };
 
   const handleDelete = async (userId: string, nama: string) => {
@@ -143,14 +141,12 @@ export const PengaturanHakAksesTab: React.FC<PengaturanHakAksesTabProps> = ({
       refreshUsers();
       return;
     }
-    if (confirm(`Hapus akun "${nama}" secara permanen dari sistem?`)) {
-      const ok = await deleteUserOnServer(userId);
-      if (ok) {
-        refreshUsers();
-        showToast(`Akun "${nama}" telah dihapus.`);
-      } else {
-        showToast('Akun Admin Pusat utama tidak dapat dihapus.');
-      }
+    const ok = await deleteUserOnServer(userId);
+    if (ok) {
+      refreshUsers();
+      showToast(`Akun "${nama}" telah dihapus.`);
+    } else {
+      showToast('Akun Admin Pusat utama tidak dapat dihapus.');
     }
   };
 
@@ -173,35 +169,38 @@ export const PengaturanHakAksesTab: React.FC<PengaturanHakAksesTabProps> = ({
   const roles: UserRole[] = ['admin_pusat', 'admin_pabrik', 'kepala_pabrik'];
 
   const handleToggle = (role: UserRole, key: PermissionKey) => {
-    const updated = {
-      ...localPermissions,
-      [role]: {
-        ...localPermissions[role],
-        [key]: !localPermissions[role][key],
-      },
-    };
-    setLocalPermissions(updated);
-    setHasUnsavedChanges(true);
-    // Instant save for convenience, while keeping save button for explicit feedback
-    onUpdatePermissions(updated);
+    setLocalPermissions((prev) => {
+      const updated = {
+        ...prev,
+        [role]: {
+          ...prev[role],
+          [key]: !prev[role][key],
+        },
+      };
+      setHasUnsavedChanges(true);
+      onUpdatePermissions(updated);
+      return updated;
+    });
   };
 
   const handleToggleAllForRole = (role: UserRole, targetValue: boolean) => {
-    const updatedRolePerms = { ...localPermissions[role] };
-    PERMISSION_LIST.forEach((perm) => {
-      // If category filter is active, only toggle that category
-      if (categoryFilter === 'all' || perm.category === categoryFilter) {
-        updatedRolePerms[perm.key] = targetValue;
-      }
-    });
+    setLocalPermissions((prev) => {
+      const updatedRolePerms = { ...prev[role] };
+      PERMISSION_LIST.forEach((perm) => {
+        // If category filter is active, only toggle that category
+        if (categoryFilter === 'all' || perm.category === categoryFilter) {
+          updatedRolePerms[perm.key] = targetValue;
+        }
+      });
 
-    const updated = {
-      ...localPermissions,
-      [role]: updatedRolePerms,
-    };
-    setLocalPermissions(updated);
-    setHasUnsavedChanges(true);
-    onUpdatePermissions(updated);
+      const updated = {
+        ...prev,
+        [role]: updatedRolePerms,
+      };
+      setHasUnsavedChanges(true);
+      onUpdatePermissions(updated);
+      return updated;
+    });
     showToast(
       `${targetValue ? 'Mencentang semua' : 'Membatalkan semua'} izin untuk ${
         ROLE_DEFINITIONS[role].title
@@ -210,15 +209,9 @@ export const PengaturanHakAksesTab: React.FC<PengaturanHakAksesTabProps> = ({
   };
 
   const handleReset = () => {
-    if (
-      window.confirm(
-        'Apakah Anda yakin ingin mengembalikan seluruh hak akses ke setelan bawaan standar pabrik?'
-      )
-    ) {
-      onResetPermissions();
-      setHasUnsavedChanges(false);
-      showToast('Hak akses berhasil dikembalikan ke standar bawaan pabrik.');
-    }
+    onResetPermissions();
+    setHasUnsavedChanges(false);
+    showToast('Hak akses berhasil dikembalikan ke standar bawaan pabrik.');
   };
 
   const handleSave = () => {
